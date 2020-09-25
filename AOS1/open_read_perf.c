@@ -20,6 +20,8 @@
 #include <sched.h>
 #include <sys/mman.h>
 #include <fcntl.h>
+#include <sys/sysinfo.h>
+
 
 #define CACHE_LINE_SIZE 64
 
@@ -49,6 +51,58 @@ long simplerand(void) {
     w ^= t;
     return w;
 }
+
+unsigned long get_mem_size(void){
+    struct sysinfo mem_info;
+    FILE *fp;
+    unsigned long vsize;
+    char str[30];
+    fp = fopen("/proc/self/stat","r");
+    if(fp==NULL){
+        fprintf(stderr,"Error while open stat file\n");
+        exit(0);
+    }
+    for (int line=0;line<23;line++){
+        fscanf(fp,"%s",str);
+    }
+
+    sysinfo(&mem_info);
+
+    vsize = strtoul(str,NULL,10);
+    return mem_info.freeram-vsize-1024*1024*128;
+}
+
+int compete_for_memory(void* unused) {
+   long mem_size = get_mem_size();
+   int page_sz = sysconf(_SC_PAGE_SIZE);
+   printf("Total memsize is %3.2f GBs\n", (double)mem_size/(1024*1024*1024));
+   fflush(stdout);
+   char* p = mmap(NULL, mem_size, PROT_READ | PROT_WRITE,
+                  MAP_NORESERVE|MAP_PRIVATE|MAP_ANONYMOUS, -1, (off_t) 0);
+   if (p == MAP_FAILED)
+      perror("Failed anon MMAP competition");
+
+   int i = 0;
+   while(1) {
+      volatile char *a;
+      long r = simplerand() % (mem_size/page_sz);
+      char c;
+      if( i >= mem_size/page_sz ) {
+         i = 0;
+      }
+      // One read and write per page
+      //a = p + i * page_sz; // sequential access
+      a = p + r * page_sz;
+      c += *a;
+      if((i%8) == 0) {
+         *a = 1;
+      }
+      i++;
+   }
+   return 0;
+}
+
+
 
 void do_mem_flush(char* p, int size){
    int i, j, count, outer, locality;
@@ -133,6 +187,9 @@ int main()
 	int i;
     
     int memfd;
+
+
+
 
 	memset(&pea, 0, sizeof(struct perf_event_attr));
 	pea.type = PERF_TYPE_HW_CACHE;
@@ -246,6 +303,18 @@ int main()
     printf("\n");
 
     flush_mem = (char*)malloc(512*1024);
+	
+    
+    //FORK and make other competeing work
+#ifdef FORK
+
+	pid_t id = fork();
+    if(id==0){
+        void *x;
+        compete_for_memory(x);
+    }
+
+#endif
 
     unsigned long mask = 1; 
     if (sched_setaffinity(0, sizeof(mask), (cpu_set_t*)&mask) <0) 
@@ -311,7 +380,7 @@ int main()
 #else
     free(memory);
 #endif
-
+    kill(id,15);//SIGTERM
 	return 0;
 }
 

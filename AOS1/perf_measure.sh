@@ -9,7 +9,7 @@ do
                 for MSET in 0 1 
                 do
                     rm perf.o
-                    CFLAGS="-DMMAP_ALLOC "
+                    CFLAGS="-DMMAP_ALLOC -DFORK"
                     if [ $ANON -eq 1 ]
                     then
                       CFLAGS=$CFLAGS"-DANON " 
@@ -33,12 +33,12 @@ do
                         CFLAGS=$CFLAGS"-Dopt_random_access=0 "
                     fi
                     echo $CFLAGS 
-                    echo gcc $CFLAGS open_read_perf.c -o perf.o
+                    gcc $CFLAGS open_read_perf.c -o perf.o
                     
                     for j in {1..5}
                     do
                         echo $j
-                        ./perf.o 
+                        ./perf.o &> output.txt
                     done
                 
                 done
