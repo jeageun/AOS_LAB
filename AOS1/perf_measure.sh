@@ -9,7 +9,7 @@ do
                 for MSET in 0 1 
                 do
                     rm perf.o
-                    CFLAGS="-DMMAP_ALLOC -DFORK"
+                    CFLAGS="-DMMAP_ALLOC -DFORK "
                     if [ $ANON -eq 1 ]
                     then
                       CFLAGS=$CFLAGS"-DANON " 
@@ -38,7 +38,8 @@ do
                     for j in {1..5}
                     do
                         echo $j
-                        ./perf.o &> output.txt
+                        ./perf.o >> output.txt
+                        sleep 2
                     done
                 
                 done

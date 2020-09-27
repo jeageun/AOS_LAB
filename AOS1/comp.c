@@ -65,11 +65,10 @@ unsigned long get_mem_size(void){
     for (int line=0;line<23;line++){
         fscanf(fp,"%s",str);
     }
-
-    sysinfo(&mem_info);
-
     vsize = strtoul(str,NULL,10);
-    return mem_info.totalram-vsize-1024*1024;
+
+
+    return vsize;
 }
 
 int compete_for_memory(void* unused) {
@@ -131,7 +130,7 @@ void do_mem_access(char* p, int size) {
 	int i, j, count, outer, locality;
    int ws_base = 0;
    int max_base = ((size / CACHE_LINE_SIZE) - 512);
-	for(outer = 0; outer < (1<<17); ++outer) {
+	for(outer = 0; outer < (1<<20); ++outer) {
       long r = simplerand() % max_base;
       // Pick a starting offset
       if( opt_random_access ) {
@@ -288,18 +287,6 @@ int main()
         fprintf(stderr,"%d - %s\n",errno, strerror(errno));
         exit(0);
     }
-    
-    //FORK and make other competeing work
-#ifdef FORK
-    fflush(stdout);
-	pid_t id = fork();
-    if(id==0){
-        void *x;
-        compete_for_memory(x);
-    }
-
-#endif
-
 #ifdef MSET 
     printf("MSET&MSYNC");
     memset(memory,0,1024*1024*1024);
@@ -313,34 +300,18 @@ int main()
     printf("");
 #endif
     printf("\n");
-    fflush(stdout);
+
     flush_mem = (char*)malloc(512*1024);
 
-    unsigned long mask = 1; 
-    if (sched_setaffinity(0, sizeof(mask), (cpu_set_t*)&mask) <0) 
-    { printf("sched_setaffinity"); }
-    do_mem_flush(flush_mem,512*1024);
-    
-    /***** Measurement Start *****/
-    if (getrusage(RUSAGE_SELF,&prev_rec) <0)
-    {
-        printf("PREV_REC_ERROR");
-        exit(0);
-    }
-    
-    ioctl(fd1, PERF_EVENT_IOC_RESET, PERF_IOC_FLAG_GROUP);
-  	ioctl(fd1, PERF_EVENT_IOC_ENABLE, PERF_IOC_FLAG_GROUP);
-
-	do_mem_access(memory,1024*1024*1024);
-
-	ioctl(fd1, PERF_EVENT_IOC_DISABLE, PERF_IOC_FLAG_GROUP);
-
-    /****** Measurement END ********/
 
     if (getrusage(RUSAGE_SELF,&aft_rec) <0){
         printf("AFT_REC ERROR\n");
         exit(0);
     }
+
+	
+    void *x;
+    compete_for_memory(x);
 
 
 	read(fd1, buf, sizeof(buf));
@@ -380,7 +351,7 @@ int main()
 #else
     free(memory);
 #endif
-    kill(id,15);//SIGTERM
+
 	return 0;
 }
 
