@@ -4,7 +4,7 @@ do
     do
         for POPULATE in 0 1
         do
-            for SHARED in 0 1 
+            for SHARED in  1 
             do
                 for MSET in 0 1 
                 do
