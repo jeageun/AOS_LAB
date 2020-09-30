@@ -18,11 +18,6 @@ int main() {
         char *hello = "Hello from server";
         struct sockaddr_in servaddr, cliaddr;
 
-        // Creating socket file descriptor
-        if ( (sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0 ) {
-                perror("socket creation failed");
-                exit(EXIT_FAILURE);
-        }
 
         memset(&servaddr, 0, sizeof(servaddr));
         memset(&cliaddr, 0, sizeof(cliaddr));
@@ -32,6 +27,12 @@ int main() {
         servaddr.sin_addr.s_addr = INADDR_ANY;
         servaddr.sin_port = htons(PORT);
 
+		while(1){
+        // Creating socket file descriptor
+        if ( (sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0 ) {
+                perror("socket creation failed");
+                exit(EXIT_FAILURE);
+        }
         // Bind the socket with the server address
         if ( bind(sockfd, (const struct sockaddr *)&servaddr,
                         sizeof(servaddr)) < 0 )
@@ -55,12 +56,8 @@ int main() {
                         len);
 
         printf("Hello message sent.\n");
-        for(int tmp =0;tmp<1000;tmp++){
-        sendto(sockfd, (const char *)hello, strlen(hello),
-                MSG_CONFIRM, (const struct sockaddr *) &cliaddr,
-                        len);
-        sleep(1);
-        }
+		close(sockfd);
+		}
         return 0;
 }
 
