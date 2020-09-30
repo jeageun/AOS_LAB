@@ -37,11 +37,52 @@
 #include <unistd.h>
 #include <sys/types.h>
 
+//NFS include
+#include <sys/socket.h> 
+#include <arpa/inet.h> 
+#include <netinet/in.h> 
+#define PORT	 8089 
+#define MAXLINE 1024 
+
 #ifdef HAVE_SYS_XATTR_H
 #include <sys/xattr.h>
 #endif
 
 #include "log.h"
+
+enum operators{
+  GETATTR ,
+  READLINK ,
+  GETDIR ,
+  MKNOD ,
+  MKDIR ,
+  UNLINK ,
+  RMDIR ,
+  SYMLINK ,
+  RENAME ,
+  LINK ,
+  CHMOD ,
+  CHOWN ,
+  TRUNCATE ,
+  UTIME ,
+  OPEN ,
+  READ ,
+  WRITE ,
+  STATFS ,
+  FLUSH ,
+  RELEASE ,
+  FSYNC ,
+  OPENDIR ,
+  READDIR ,
+  RELEASEDIR ,
+  FSYNCDIR ,
+  INIT ,
+  DESTROY ,
+  ACCESS ,
+  FTRUNCATE ,
+  FGETATTR 
+}
+
 
 //  All the paths I see are relative to the root of the mounted
 //  filesystem.  In order to get to the underlying filesystem, I need to
@@ -73,12 +114,35 @@ int bb_getattr(const char *path, struct stat *statbuf)
 {
     int retstat;
     char fpath[PATH_MAX];
+    struct stat rcv_data;
+    
+    memset(&rcv_data,0,sizeof(struct stat));
     
     log_msg("\nbb_getattr(path=\"%s\", statbuf=0x%08x)\n",
 	  path, statbuf);
     bb_fullpath(fpath, path);
+     
+     
+    sendto(sockfd, GETATTR, sizeof(int), 
+		MSG_CONFIRM, (const struct sockaddr *) bb_data->server_addr, 
+			sizeof(*bb_data->server_addr)); 
+			
+    sendto(sockfd, fpath, sizeof(fpath), 
+		MSG_CONFIRM, (const struct sockaddr *) bb_data->server_addr, 
+			sizeof(*bb_data->server_addr)); 
+			
+	printf("bb_getattr msg sent.\n"); 
+		
+	recvfrom(sockfd, (struct stat *)&rcv_data, sizeof(struct stat), 
+				MSG_WAITALL, (struct sockaddr *)bb_data->server_addr, 
+				sizeof(*bb_data->server_addr)); 
+				
+	memcpy(rcv_data,statbuf);
+							
 
-    retstat = log_syscall("lstat", lstat(fpath, statbuf), 0);
+		
+
+    //retstat = log_syscall("lstat", lstat(fpath, statbuf), 0);
     
     log_stat(statbuf);
     
@@ -695,9 +759,10 @@ void *bb_init(struct fuse_conn_info *conn)
 {
     log_msg("\nbb_init()\n");
     
-    log_conn(conn);
-    log_fuse_context(fuse_get_context());
-    
+    //log_conn(conn);
+    //log_fuse_context(fuse_get_context());
+    s
+
     return BB_DATA;
 }
 
@@ -868,10 +933,15 @@ void bb_usage()
     abort();
 }
 
+
+
 int main(int argc, char *argv[])
 {
     int fuse_stat;
     struct bb_state *bb_data;
+    int sockfd; 
+    struct sockaddr_in	 servaddr; 
+    char *hello ="Hello, from client";
 
     // bbfs doesn't do any access checking on its own (the comment
     // blocks in fuse.h mention some of the functions that need
@@ -913,6 +983,20 @@ int main(int argc, char *argv[])
     
     bb_data->logfile = log_open();
     
+	// Creating socket file descriptor 
+	if ( (sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0 ) { 
+		perror("socket creation failed"); 
+		exit(EXIT_FAILURE); 
+	} 
+
+	memset(&servaddr, 0, sizeof(servaddr)); 
+	// Filling server information 
+	servaddr.sin_family = AF_INET; 
+	servaddr.sin_port = htons(PORT); 
+	servaddr.sin_addr.s_addr = inet_addr("192.168.0.160"); 
+	
+	bb_data->server_addr = &servaddr;
+  
     // turn over control to fuse
     fprintf(stderr, "about to call fuse_main\n");
     fuse_stat = fuse_main(argc, argv, &bb_oper, bb_data);
