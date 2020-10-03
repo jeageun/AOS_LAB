@@ -38,13 +38,52 @@
 #define PORT 18089
 #define MAXLINE 1024
 
+enum operations{
+  GETATTR ,
+  READLINK ,
+  GETDIR ,
+  MKNOD ,
+  MKDIR ,
+  UNLINK ,
+  RMDIR ,
+  SYMLINK ,
+  RENAME ,
+  LINK ,
+  CHMOD ,
+  CHOWN ,
+  TRUNCATE ,
+  UTIME ,
+  OPEN ,
+  READ ,
+  WRITE ,
+  STATFS ,
+  FLUSH ,
+  RELEASE ,
+  FSYNC ,
+  OPENDIR ,
+  READDIR ,
+  RELEASEDIR ,
+  FSYNCDIR ,
+  INIT ,
+  DESTROY ,
+  ACCESS ,
+  FTRUNCATE ,
+  FGETATTR 
+};
+
 struct net_state {
 	struct sockaddr_in* servaddr;
 };
 #define C_DATA ((struct net_state *) ((struct fuse_context*)fuse_get_context())->private_data)
 
+struct _args {
+	struct stat *_stbuf;
+	int _mask;
+	void *_buf;
+	size_t _size;
+};
 
-int send_through_net(const char *path,int opcode, struct stat *stbuf)
+int send_through_net(const char *path,int opcode, struct _args *arg)
 {
 	int sockfd;
 	if ( (sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0 ) {
@@ -54,11 +93,27 @@ int send_through_net(const char *path,int opcode, struct stat *stbuf)
 	int res;
 	int len = sizeof(*C_DATA->servaddr);
 	sendto(sockfd, &opcode, sizeof(int),MSG_CONFIRM,C_DATA->servaddr, len);
+	switch(opcode){
+case GETATTR:
 	sendto(sockfd, path, strlen(path),MSG_CONFIRM, C_DATA->servaddr, len);
 	recvfrom(sockfd,&res,sizeof(int),MSG_WAITALL, C_DATA->servaddr, &len);
-	recvfrom(sockfd,stbuf,sizeof(*stbuf),MSG_WAITALL,C_DATA->servaddr,&len);
-
-
+	recvfrom(sockfd,arg->_stbuf,sizeof(*arg->_stbuf),MSG_WAITALL,C_DATA->servaddr,&len);
+	break;
+case ACCESS:
+	sendto(sockfd, path, strlen(path),MSG_CONFIRM, C_DATA->servaddr, len);
+	sendto(sockfd, &arg->_mask, sizeof(int),MSG_CONFIRM, C_DATA->servaddr, len);
+	recvfrom(sockfd,&res,sizeof(int),MSG_WAITALL, C_DATA->servaddr, &len);
+	break;
+case READLINK:
+	sendto(sockfd, path, strlen(path),MSG_CONFIRM, C_DATA->servaddr, len);
+	sendto(sockfd, &arg->_size,sizeof(size_t),MSG_CONFIRM, C_DATA->servaddr, len);
+	sendto(sockfd, arg->_buf, arg->_size ,MSG_CONFIRM, C_DATA->servaddr, len);
+	recvfrom(sockfd,&res,sizeof(int),MSG_WAITALL, C_DATA->servaddr, &len);
+	if(res != -1){ 
+		recvfrom(sockfd,arg->_buf,arg->_size,MSG_WAITALL, C_DATA->servaddr, &len);
+	}
+	break;
+	}
 	return res;
 
 }
@@ -66,8 +121,9 @@ int send_through_net(const char *path,int opcode, struct stat *stbuf)
 static int xmp_getattr(const char *path, struct stat *stbuf)
 {
 	int res;
-
-	res = send_through_net(path,0,stbuf);
+	struct _args arg;
+	arg._stbuf = stbuf;
+	res = send_through_net(path,GETATTR,&arg);
 
 	res = lstat(path, stbuf);
 	if (res == -1)
@@ -79,8 +135,10 @@ static int xmp_getattr(const char *path, struct stat *stbuf)
 static int xmp_access(const char *path, int mask)
 {
 	int res;
-
-	res = access(path, mask);
+	struct _args arg;
+	arg._mask = mask;
+	res = send_through_net(path,ACCESS,&arg);
+	//res = access(path, mask);
 	if (res == -1)
 		return -errno;
 
@@ -90,8 +148,11 @@ static int xmp_access(const char *path, int mask)
 static int xmp_readlink(const char *path, char *buf, size_t size)
 {
 	int res;
-
-	res = readlink(path, buf, size - 1);
+	struct _args arg;
+	arg._buf = (void*)buf;
+	arg._size = size;
+	res = send_through_net(path,READLINK,&arg);
+	//res = readlink(path, buf, size - 1);
 	if (res == -1)
 		return -errno;
 
@@ -425,7 +486,7 @@ int main(int argc, char *argv[])
 	memset(&_servaddr,0,sizeof(_servaddr));
 	_servaddr.sin_family = AF_INET;
 	_servaddr.sin_port = htons(PORT);
-	_servaddr.sin_addr.s_addr = inet_addr("192.168.0.160");
+	_servaddr.sin_addr.s_addr = inet_addr("192.168.0.144");
 
 	_state = malloc(sizeof(struct net_state));
 	_state->servaddr = &_servaddr;

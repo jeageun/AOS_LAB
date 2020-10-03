@@ -44,10 +44,43 @@ struct net_state {
 };
 #define C_DATA ((struct net_state *) fuse_get_context()->private_data)
 
+enum operations{
+  GETATTR ,
+  READLINK ,
+  GETDIR ,
+  MKNOD ,
+  MKDIR ,
+  UNLINK ,
+  RMDIR ,
+  SYMLINK ,
+  RENAME ,
+  LINK ,
+  CHMOD ,
+  CHOWN ,
+  TRUNCATE ,
+  UTIME ,
+  OPEN ,
+  READ ,
+  WRITE ,
+  STATFS ,
+  FLUSH ,
+  RELEASE ,
+  FSYNC ,
+  OPENDIR ,
+  READDIR ,
+  RELEASEDIR ,
+  FSYNCDIR ,
+  INIT ,
+  DESTROY ,
+  ACCESS ,
+  FTRUNCATE ,
+  FGETATTR
+};
 
 
-static int xmp_getattr(int sockfd, struct sockaddr_in *cliaddr, char *buffer)
+static int xmp_getattr(int sockfd, struct sockaddr_in *cliaddr)
 {
+	char buffer[MAXLINE];
 	struct stat stbuf; 
 	int res;
 	int n;
@@ -61,26 +94,57 @@ static int xmp_getattr(int sockfd, struct sockaddr_in *cliaddr, char *buffer)
 	return 0;
 }
 
-static int xmp_access(const char *path, int mask)
+//static int xmp_access(const char *path, int mask)
+static int xmp_access(int sockfd, struct sockaddr_in *cliaddr)
 {
 	int res;
-
-	res = access(path, mask);
-	if (res == -1)
-		return -errno;
+	char buffer[MAXLINE];
+	int mask;
+	int n;
+	int len = sizeof(struct sockaddr_in);
+	
+	//get path
+	n = recvfrom(sockfd,buffer,MAXLINE,MSG_WAITALL,cliaddr,&len);
+	buffer[n]='\0';
+	
+	recvfrom(sockfd,&mask,sizeof(mask),MSG_WAITALL,cliaddr,&len);
+	
+	res = access(buffer, mask);
+	sendto(sockfd,&res,sizeof(int),MSG_CONFIRM,cliaddr,len);
 
 	return 0;
 }
 
-static int xmp_readlink(const char *path, char *buf, size_t size)
+//static int xmp_readlink(const char *path, char *buf, size_t size)
+static int xmp_readlink(int sockfd, struct sockaddr_in *cliaddr)
 {
 	int res;
+	char buffer[MAXLINE];
+	char *buf;
+	size_t sz;
+	int n;
+	int len = sizeof(struct sockaddr_in);
+	
+	//get path
+	n = recvfrom(sockfd,buffer,MAXLINE,MSG_WAITALL,cliaddr,&len);
+	buffer[n]='\0';
+	
+	
+	recvfrom(sockfd,&sz,sizeof(sz),MSG_WAITALL,cliaddr,&len);
+	
+	buf = (char *)malloc(sizeof(char)*sz);
+	recvfrom(sockfd,buf,sz,MSG_WAITALL,cliaddr,&len);
+	
+	res = readlink(buffer, buf, sz - 1);
 
-	res = readlink(path, buf, size - 1);
+
+	sendto(sockfd,&res,sizeof(int),MSG_CONFIRM,cliaddr,len);
 	if (res == -1)
 		return -errno;
 
 	buf[res] = '\0';
+	sendto(sockfd,buf,sz,MSG_CONFIRM,cliaddr,len);
+
 	return 0;
 }
 
@@ -371,7 +435,6 @@ int main(int argc, char *argv[])
 {
 	int sockfd;
 	struct sockaddr_in servaddr, cliaddr;
-	char buffer[MAXLINE];
 
 
 	memset(&servaddr, 0, sizeof(servaddr));
@@ -407,8 +470,18 @@ int main(int argc, char *argv[])
 		printf("Opcode : %d\n", opcode);
 		printf("ip : %s\n",inet_ntoa(cliaddr.sin_addr));
 
+		switch (opcode){		
+			case GETATTR:
+			xmp_getattr(sockfd, &cliaddr);
+			break;
+			case ACCESS:
+			xmp_access(sockfd,&cliaddr);
+			break;
+			case READLINK:
+			xmp_readlink(sockfd,&cliaddr);
+			break;
 
-		xmp_getattr(sockfd, &cliaddr, buffer);
+		}
 		close(sockfd);
 	}
 	return 0;
