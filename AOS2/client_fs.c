@@ -143,16 +143,40 @@ case RMDIR:
 	sendto(sockfd, path, strlen(path),MSG_CONFIRM, C_DATA->servaddr, len);
 	recvfrom(sockfd,&res,sizeof(int),MSG_WAITALL, C_DATA->servaddr, &len);
 	break;
-	
-	
+case SYMLINK:
+	printf("SYMLINK\n");
+	fflush(stdout);
+	sendto(sockfd, path, strlen(path),MSG_CONFIRM, C_DATA->servaddr, len);
+	recvfrom(sockfd,&res,sizeof(int),MSG_WAITALL, C_DATA->servaddr, &len);
+	break;	
+case RENAME:
+	printf("RENAME\n");
+	fflush(stdout);
+	sendto(sockfd, path, strlen(path),MSG_CONFIRM, C_DATA->servaddr, len);
+	recvfrom(sockfd,&res,sizeof(int),MSG_WAITALL, C_DATA->servaddr, &len);
+	break;	
+case LINK:
+	printf("LINK\n");
+	fflush(stdout);
+	sendto(sockfd, path, strlen(path),MSG_CONFIRM, C_DATA->servaddr, len);
+	recvfrom(sockfd,&res,sizeof(int),MSG_WAITALL, C_DATA->servaddr, &len);
+	break;
+case OPEN:
+	printf("OPEN\n");
+	fflush(stdout);
+	sendto(sockfd, path, strlen(path),MSG_CONFIRM, C_DATA->servaddr, len);
+	sendto(sockfd, arg->_fi, sizeof(struct fuse_file_info) ,MSG_CONFIRM, C_DATA->servaddr, len);
+	recvfrom(sockfd,&res,sizeof(int),MSG_WAITALL, C_DATA->servaddr, &len);
+	break;
 	
 	
 	
 	}
+	close(sockfd);
 	return res;
 
 }
-
+//DONE
 static int xmp_getattr(const char *path, struct stat *stbuf)
 {
 	int res;
@@ -167,6 +191,7 @@ static int xmp_getattr(const char *path, struct stat *stbuf)
 	return 0;
 }
 
+//DONE
 static int xmp_access(const char *path, int mask)
 {
 	int res;
@@ -180,6 +205,7 @@ static int xmp_access(const char *path, int mask)
 	return 0;
 }
 
+//DONE
 static int xmp_readlink(const char *path, char *buf, size_t size)
 {
 	int res;
@@ -196,6 +222,7 @@ static int xmp_readlink(const char *path, char *buf, size_t size)
 }
 
 
+//DONE
 static int xmp_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 		       off_t offset, struct fuse_file_info *fi)
 {
@@ -255,60 +282,78 @@ static int xmp_mknod(const char *path, mode_t mode, dev_t rdev)
 	return 0;
 }
 
+//DONE
 static int xmp_mkdir(const char *path, mode_t mode)
 {
 	int res;
 	struct _args arg;
 	arg._mode = mode;
-	//res = send_through_net(path,MKDIR,&arg);
-	res = mkdir(path, mode);
+	res = send_through_net(path,MKDIR,&arg);
+	//res = mkdir(path, mode);
 	if (res == -1)
 		return -errno;
 
 	return 0;
 }
 
+//DONE
 static int xmp_unlink(const char *path)
 {
 	int res;
 	struct _args arg;
 
-	//res = send_through_net(path,UNLINK,&arg);
-	res = unlink(path);
+	res = send_through_net(path,UNLINK,&arg);
+	//res = unlink(path);
 	if (res == -1)
 		return -errno;
 
 	return 0;
 }
 
+//DONE
 static int xmp_rmdir(const char *path)
 {
 	int res;
 	struct _args arg;
-	//res = send_through_net(path,RMDIR,&arg);
-	res = rmdir(path);
+	res = send_through_net(path,RMDIR,&arg);
+	//res = rmdir(path);
 	if (res == -1)
 		return -errno;
 
 	return 0;
 }
 
+//DONE
 static int xmp_symlink(const char *to, const char *from)
 {
 	int res;
+	char catstr[2*MAXLINE];
+	strcpy(catstr,from);
+	strcat(catstr,"\27");//27 is DEL, not available in usual file system. So, Magic number.
+	strcat(catstr,to);
+	
+	res = send_through_net(catstr,SYMLINK,NULL);
 
-	res = symlink(to, from);
+	
+	//res = symlink(to, from);
 	if (res == -1)
 		return -errno;
 
 	return 0;
 }
 
+//DONE
 static int xmp_rename(const char *from, const char *to)
 {
 	int res;
+	char catstr[2*MAXLINE];
+	strcpy(catstr,from);
+	strcat(catstr,"\27");//27 is DEL, not available in usual file system. So, Magic number.
+	strcat(catstr,to);
+	
+	res = send_through_net(catstr,RENAME,NULL);
 
-	res = rename(from, to);
+	//res = rename(from, to);
 	if (res == -1)
 		return -errno;
 
@@ -318,8 +363,14 @@ static int xmp_rename(const char *from, const char *to)
 static int xmp_link(const char *from, const char *to)
 {
 	int res;
+	char catstr[2*MAXLINE];
+	strcpy(catstr,from);
+	strcat(catstr,"\27");//27 is DEL, not available in usual file system. So, Magic number.
+	strcat(catstr,to);
+	
+	res = send_through_net(catstr,LINK,NULL);
 
-	res = link(from, to);
+	//res = link(from, to);
 	if (res == -1)
 		return -errno;
 
@@ -379,8 +430,10 @@ static int xmp_utimens(const char *path, const struct timespec ts[2])
 static int xmp_open(const char *path, struct fuse_file_info *fi)
 {
 	int res;
-
-	res = open(path, fi->flags);
+	struct _args arg;
+	arg._fi = fi;
+	res = send_through_net(path,OPEN,&arg);
+	//res = open(path, fi->flags);
 	if (res == -1)
 		return -errno;
 

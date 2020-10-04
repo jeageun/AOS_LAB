@@ -275,33 +275,103 @@ static int xmp_rmdir(int sockfd, struct sockaddr_in *cliaddr)
 	return 0;
 }
 
-static int xmp_symlink(const char *to, const char *from)
+//static int xmp_symlink(const char *to, const char *from)
+static int xmp_symlink(int sockfd, struct sockaddr_in *cliaddr)
 {
 	int res;
+	char path[2*MAXLINE];
+	char *from;
+	char *to;
+
+	int len = sizeof(struct sockaddr_in);
+	size_t n=0;	
+	//get path
+	n = recvfrom(sockfd,path,2*MAXLINE,MSG_WAITALL,cliaddr,&len);
+	path[n]='\0';	
+
+	char * token = strtok(path, "\27");
+	// loop through the string to extract all other tokens
+	from=(char*)malloc(strlen(token)+1);
+	strcpy(from,token);
+	token = strtok(NULL, "\27");
+	
+	to=(char*)malloc(strlen(token)+1);
+	strcpy(to,token);
+	printf("%s\n",from);
+	printf("%s\n",to);
 
 	res = symlink(to, from);
+	sendto(sockfd,&res,sizeof(int),MSG_CONFIRM,cliaddr,len);
+	
 	if (res == -1)
 		return -errno;
 
 	return 0;
 }
 
-static int xmp_rename(const char *from, const char *to)
+//static int xmp_rename(const char *from, const char *to)
+static int xmp_rename(int sockfd, struct sockaddr_in *cliaddr)
 {
 	int res;
+	char path[2*MAXLINE];
+	char *from;
+	char *to;
+
+	int len = sizeof(struct sockaddr_in);
+	size_t n=0;	
+	//get path
+	n = recvfrom(sockfd,path,2*MAXLINE,MSG_WAITALL,cliaddr,&len);
+	path[n]='\0';	
+
+	char * token = strtok(path, "\27");
+	// loop through the string to extract all other tokens
+	from=(char*)malloc(strlen(token)+1);
+	strcpy(from,token);
+	token = strtok(NULL, "\27");
+	
+	to=(char*)malloc(strlen(token)+1);
+	strcpy(to,token);
+	printf("%s\n",from);
+	printf("%s\n",to);
 
 	res = rename(from, to);
+	
+	sendto(sockfd,&res,sizeof(int),MSG_CONFIRM,cliaddr,len);
 	if (res == -1)
 		return -errno;
 
 	return 0;
 }
 
-static int xmp_link(const char *from, const char *to)
+//static int xmp_link(const char *from, const char *to)
+static int xmp_link(int sockfd, struct sockaddr_in *cliaddr)
 {
 	int res;
+	char path[2*MAXLINE];
+	char *from;
+	char *to;
+
+	int len = sizeof(struct sockaddr_in);
+	size_t n=0;	
+	//get path
+	n = recvfrom(sockfd,path,2*MAXLINE,MSG_WAITALL,cliaddr,&len);
+	path[n]='\0';	
+
+	char * token = strtok(path, "\27");
+	// loop through the string to extract all other tokens
+	from=(char*)malloc(strlen(token)+1);
+	strcpy(from,token);
+	token = strtok(NULL, "\27");
+	
+	to=(char*)malloc(strlen(token)+1);
+	strcpy(to,token);
+	printf("%s\n",from);
+	printf("%s\n",to);
 
 	res = link(from, to);
+
+	sendto(sockfd,&res,sizeof(int),MSG_CONFIRM,cliaddr,len);
+
 	if (res == -1)
 		return -errno;
 
@@ -358,11 +428,25 @@ static int xmp_utimens(const char *path, const struct timespec ts[2])
 	return 0;
 }
 
-static int xmp_open(const char *path, struct fuse_file_info *fi)
+//static int xmp_open(const char *path, struct fuse_file_info *fi)
+static int xmp_open(int sockfd, struct sockaddr_in *cliaddr)
 {
 	int res;
+	struct fuse_file_info fi;
+	
+	char path[MAXLINE];
+	int len = sizeof(struct sockaddr_in);
+	size_t n=0;	
 
-	res = open(path, fi->flags);
+	//get path
+	n = recvfrom(sockfd,path,MAXLINE,MSG_WAITALL,cliaddr,&len);
+	path[n]='\0';	
+
+	
+	recvfrom(sockfd,&fi,sizeof(struct fuse_file_info),MSG_WAITALL,cliaddr,&len);
+
+	res = open(path, fi.flags);
+	sendto(sockfd,&res,sizeof(int),MSG_CONFIRM,cliaddr,len);
 	if (res == -1)
 		return -errno;
 
@@ -492,19 +576,21 @@ int main(int argc, char *argv[])
 	servaddr.sin_addr.s_addr = INADDR_ANY;
 	servaddr.sin_port = htons(PORT);
 	
-	while(1){
-		// Creating socket file descriptor
-		if ( (sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0 ) {
-				perror("socket creation failed");
-				exit(EXIT_FAILURE);
-		}
 
-		// Bind the socket with the server address
-		if ( bind(sockfd, (const struct sockaddr *)&servaddr, sizeof(servaddr)) < 0 )
-		{
-				perror("bind failed");
-				exit(EXIT_FAILURE);
-		}
+	// Creating socket file descriptor
+	if ( (sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0 ) {
+			perror("socket creation failed");
+			exit(EXIT_FAILURE);
+	}
+
+	// Bind the socket with the server address
+	if ( bind(sockfd, (const struct sockaddr *)&servaddr, sizeof(servaddr)) < 0 )
+	{
+			perror("bind failed");
+			exit(EXIT_FAILURE);
+	}
+	
+	while(1){
 
 		int len, n;
 		int opcode;
@@ -539,10 +625,21 @@ int main(int argc, char *argv[])
 			case RMDIR:
 			xmp_rmdir(sockfd,&cliaddr);
 			break;
-
+			case SYMLINK:
+			xmp_symlink(sockfd,&cliaddr);
+			break;
+			case RENAME:
+			xmp_rename(sockfd,&cliaddr);
+			break;
+			case LINK:
+			xmp_link(sockfd,&cliaddr);
+			break;
+			case OPEN:
+			xmp_open(sockfd,&cliaddr);
+			break;
 		}
-		close(sockfd);
 	}
+	close(sockfd);
 	return 0;
 
 }
