@@ -9,6 +9,7 @@
 */
 
 #define FUSE_USE_VERSION 26
+#include "arguments.h"
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -45,36 +46,36 @@ struct net_state {
 #define C_DATA ((struct net_state *) fuse_get_context()->private_data)
 
 enum operations{
-  GETATTR ,
-  READLINK ,
-  GETDIR ,
-  MKNOD ,
-  MKDIR ,
-  UNLINK ,
-  RMDIR ,
-  SYMLINK ,
-  RENAME ,
-  LINK ,
-  CHMOD ,
-  CHOWN ,
-  TRUNCATE ,
-  UTIME ,
-  OPEN ,
-  READ ,
-  WRITE ,
-  STATFS ,
-  FLUSH ,
-  RELEASE ,
-  FSYNC ,
-  OPENDIR ,
-  READDIR ,
-  RELEASEDIR ,
-  FSYNCDIR ,
-  INIT ,
-  DESTROY ,
-  ACCESS ,
-  FTRUNCATE ,
-  FGETATTR
+  GETATTR ,//0
+  READLINK ,//1
+  GETDIR ,//2
+  MKNOD ,//3
+  MKDIR ,//4
+  UNLINK ,//5
+  RMDIR ,//6
+  SYMLINK ,//7
+  RENAME ,//8
+  LINK ,//9
+  CHMOD ,//10
+  CHOWN ,//11
+  TRUNCATE ,//12
+  UTIME ,//13
+  OPEN ,//14
+  READ ,//15
+  WRITE ,//16
+  STATFS ,//17
+  FLUSH ,//18
+  RELEASE ,//19
+  FSYNC ,//20
+  OPENDIR ,//21
+  READDIR ,//22
+  RELEASEDIR ,//23
+  FSYNCDIR ,//24
+  INIT ,//25
+  DESTROY ,//26
+  ACCESS ,//27
+  FTRUNCATE ,//28
+  FGETATTR//29
 };
 
 
@@ -99,7 +100,7 @@ static int xmp_access(int sockfd, struct sockaddr_in *cliaddr)
 {
 	int res;
 	char buffer[MAXLINE];
-	int mask;
+	struct _args arg;
 	int n;
 	int len = sizeof(struct sockaddr_in);
 	
@@ -107,9 +108,9 @@ static int xmp_access(int sockfd, struct sockaddr_in *cliaddr)
 	n = recvfrom(sockfd,buffer,MAXLINE,MSG_WAITALL,cliaddr,&len);
 	buffer[n]='\0';
 	
-	recvfrom(sockfd,&mask,sizeof(mask),MSG_WAITALL,cliaddr,&len);
+	recvfrom(sockfd,&arg,sizeof(struct _args),MSG_WAITALL,cliaddr,&len);
 	
-	res = access(buffer, mask);
+	res = access(buffer, arg._mask);
 	sendto(sockfd,&res,sizeof(int),MSG_CONFIRM,cliaddr,len);
 
 	return 0;
@@ -149,27 +150,43 @@ static int xmp_readlink(int sockfd, struct sockaddr_in *cliaddr)
 }
 
 
-static int xmp_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
-		       off_t offset, struct fuse_file_info *fi)
+//static int xmp_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
+//		       off_t offset, struct fuse_file_info *fi)
+static int xmp_readdir(int sockfd, struct sockaddr_in *cliaddr)
 {
 	DIR *dp;
 	struct dirent *de;
+	struct dirent *de_arr;
+	
+	char path[MAXLINE];
+	size_t n=0;
+	int len = sizeof(struct sockaddr_in);
+	
+	//get path
+	n = recvfrom(sockfd,path,MAXLINE,MSG_WAITALL,cliaddr,&len);
+	path[n]='\0';
 
-	(void) offset;
-	(void) fi;
-
+	int res = 0;
 	dp = opendir(path);
-	if (dp == NULL)
+	if (dp == NULL){
+		res = -errno;
+		sendto(sockfd,&res,sizeof(int),MSG_CONFIRM,cliaddr,len);
 		return -errno;
-
+	}
+	res = 0;
+	sendto(sockfd,&res,sizeof(int),MSG_CONFIRM,cliaddr,len);
+	de_arr = (struct dirent*)malloc(sizeof(struct dirent)*MAXLINE);
+	n=0;	
 	while ((de = readdir(dp)) != NULL) {
 		struct stat st;
 		memset(&st, 0, sizeof(st));
 		st.st_ino = de->d_ino;
 		st.st_mode = de->d_type << 12;
-		if (filler(buf, de->d_name, &st, 0))
-			break;
+		memcpy((void*)&(de_arr[n++]),de,sizeof(struct dirent));
 	}
+	
+	sendto(sockfd,&n,sizeof(size_t),MSG_CONFIRM,cliaddr,len);
+	sendto(sockfd,de_arr,sizeof(struct dirent)*n,MSG_CONFIRM,cliaddr,len);
 
 	closedir(dp);
 	return 0;
@@ -195,33 +212,63 @@ static int xmp_mknod(const char *path, mode_t mode, dev_t rdev)
 	return 0;
 }
 
-static int xmp_mkdir(const char *path, mode_t mode)
+//static int xmp_mkdir(const char *path, mode_t mode)
+static int xmp_mkdir(int sockfd, struct sockaddr_in *cliaddr)
 {
+	char path[MAXLINE];
+	size_t n=0;
+	int len = sizeof(struct sockaddr_in);
+	mode_t mode;
 	int res;
+	
+	//get path
+	n = recvfrom(sockfd,path,MAXLINE,MSG_WAITALL,cliaddr,&len);
+	path[n]='\0';	
+	recvfrom(sockfd,&mode,sizeof(mode_t),MSG_WAITALL,cliaddr,&len);
 
 	res = mkdir(path, mode);
+	sendto(sockfd,&res,sizeof(int),MSG_CONFIRM,cliaddr,len);
+
 	if (res == -1)
 		return -errno;
 
 	return 0;
 }
 
-static int xmp_unlink(const char *path)
+//static int xmp_unlink(const char *path)
+static int xmp_unlink(int sockfd, struct sockaddr_in *cliaddr)
 {
 	int res;
+	char path[MAXLINE];
+	int len = sizeof(struct sockaddr_in);
+	size_t n=0;
+	
+	//get path
+	n = recvfrom(sockfd,path,MAXLINE,MSG_WAITALL,cliaddr,&len);
+	path[n]='\0';	
+	
 
 	res = unlink(path);
+	sendto(sockfd,&res,sizeof(int),MSG_CONFIRM,cliaddr,len);
 	if (res == -1)
 		return -errno;
 
 	return 0;
 }
 
-static int xmp_rmdir(const char *path)
+//static int xmp_rmdir(const char *path)
+static int xmp_rmdir(int sockfd, struct sockaddr_in *cliaddr)
 {
 	int res;
+	char path[MAXLINE];
+	int len = sizeof(struct sockaddr_in);
+	size_t n=0;	
+	//get path
+	n = recvfrom(sockfd,path,MAXLINE,MSG_WAITALL,cliaddr,&len);
+	path[n]='\0';	
 
 	res = rmdir(path);
+	sendto(sockfd,&res,sizeof(int),MSG_CONFIRM,cliaddr,len);
 	if (res == -1)
 		return -errno;
 
@@ -479,6 +526,18 @@ int main(int argc, char *argv[])
 			break;
 			case READLINK:
 			xmp_readlink(sockfd,&cliaddr);
+			break;
+			case READDIR:
+			xmp_readdir(sockfd,&cliaddr);
+			break;
+			case MKDIR:
+			xmp_mkdir(sockfd,&cliaddr);
+			break;	
+			case UNLINK:
+			xmp_unlink(sockfd,&cliaddr);
+			break;
+			case RMDIR:
+			xmp_rmdir(sockfd,&cliaddr);
 			break;
 
 		}

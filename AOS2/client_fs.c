@@ -9,7 +9,7 @@
 */
 
 #define FUSE_USE_VERSION 26
-
+#include "arguments.h"
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
@@ -76,13 +76,6 @@ struct net_state {
 };
 #define C_DATA ((struct net_state *) ((struct fuse_context*)fuse_get_context())->private_data)
 
-struct _args {
-	struct stat *_stbuf;
-	int _mask;
-	void *_buf;
-	size_t _size;
-};
-
 int send_through_net(const char *path,int opcode, struct _args *arg)
 {
 	int sockfd;
@@ -93,26 +86,68 @@ int send_through_net(const char *path,int opcode, struct _args *arg)
 	int res;
 	int len = sizeof(*C_DATA->servaddr);
 	sendto(sockfd, &opcode, sizeof(int),MSG_CONFIRM,C_DATA->servaddr, len);
+	
 	switch(opcode){
 case GETATTR:
+	printf("GETATTR\n");
+	fflush(stdout);
 	sendto(sockfd, path, strlen(path),MSG_CONFIRM, C_DATA->servaddr, len);
 	recvfrom(sockfd,&res,sizeof(int),MSG_WAITALL, C_DATA->servaddr, &len);
 	recvfrom(sockfd,arg->_stbuf,sizeof(*arg->_stbuf),MSG_WAITALL,C_DATA->servaddr,&len);
 	break;
 case ACCESS:
+	printf("ACCESS\n");
+	fflush(stdout);
 	sendto(sockfd, path, strlen(path),MSG_CONFIRM, C_DATA->servaddr, len);
-	sendto(sockfd, &arg->_mask, sizeof(int),MSG_CONFIRM, C_DATA->servaddr, len);
+	sendto(sockfd, arg, sizeof(struct _args),MSG_CONFIRM, C_DATA->servaddr, len);
 	recvfrom(sockfd,&res,sizeof(int),MSG_WAITALL, C_DATA->servaddr, &len);
 	break;
 case READLINK:
+	printf("READLINK\n");
+	fflush(stdout);
 	sendto(sockfd, path, strlen(path),MSG_CONFIRM, C_DATA->servaddr, len);
 	sendto(sockfd, &arg->_size,sizeof(size_t),MSG_CONFIRM, C_DATA->servaddr, len);
 	sendto(sockfd, arg->_buf, arg->_size ,MSG_CONFIRM, C_DATA->servaddr, len);
 	recvfrom(sockfd,&res,sizeof(int),MSG_WAITALL, C_DATA->servaddr, &len);
-	if(res != -1){ 
+	if(res >=0){ 
 		recvfrom(sockfd,arg->_buf,arg->_size,MSG_WAITALL, C_DATA->servaddr, &len);
 	}
 	break;
+case READDIR:
+	printf("READDIRi\n");
+	fflush(stdout);
+	sendto(sockfd, path, strlen(path),MSG_CONFIRM, C_DATA->servaddr, len);
+	recvfrom(sockfd,&res,sizeof(int),MSG_WAITALL, C_DATA->servaddr, &len);
+	if(res >= 0){
+		recvfrom(sockfd,&arg->_size,sizeof(size_t),MSG_WAITALL, C_DATA->servaddr, &len);
+		arg->_data = malloc(sizeof(struct dirent)*arg->_size);
+		recvfrom(sockfd,arg->_data,sizeof(struct dirent)*arg->_size,MSG_WAITALL, C_DATA->servaddr, &len);
+	}
+	break;
+case MKDIR:
+	printf("MKDIR\n");
+	fflush(stdout);
+	sendto(sockfd, path, strlen(path),MSG_CONFIRM, C_DATA->servaddr, len);
+	sendto(sockfd, &arg->_mode,sizeof(mode_t),MSG_CONFIRM, C_DATA->servaddr,len);
+	recvfrom(sockfd,&res,sizeof(int),MSG_WAITALL, C_DATA->servaddr, &len);
+	break;
+case UNLINK:
+	printf("UNLINK\n");
+	fflush(stdout);
+	sendto(sockfd, path, strlen(path),MSG_CONFIRM, C_DATA->servaddr, len);
+	recvfrom(sockfd,&res,sizeof(int),MSG_WAITALL, C_DATA->servaddr, &len);
+	break;
+case RMDIR:
+	printf("RMDIR\n");
+	fflush(stdout);
+	sendto(sockfd, path, strlen(path),MSG_CONFIRM, C_DATA->servaddr, len);
+	recvfrom(sockfd,&res,sizeof(int),MSG_WAITALL, C_DATA->servaddr, &len);
+	break;
+	
+	
+	
+	
+	
 	}
 	return res;
 
@@ -166,10 +201,22 @@ static int xmp_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 {
 	DIR *dp;
 	struct dirent *de;
+	struct _args arg;	
 
 	(void) offset;
 	(void) fi;
+	
+	arg._buf = buf;
 
+	int res = send_through_net(path,READDIR,&arg);
+	if (res >=0){
+		for (int i=0;i<arg._size;i++){
+			if(filler(buf,((struct dirent*)arg._data)[i].d_name,NULL,0) != 0){
+				return -1;
+			}
+		}
+	}
+	/*
 	dp = opendir(path);
 	if (dp == NULL)
 		return -errno;
@@ -184,6 +231,7 @@ static int xmp_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 	}
 
 	closedir(dp);
+	*/
 	return 0;
 }
 
@@ -210,7 +258,9 @@ static int xmp_mknod(const char *path, mode_t mode, dev_t rdev)
 static int xmp_mkdir(const char *path, mode_t mode)
 {
 	int res;
-
+	struct _args arg;
+	arg._mode = mode;
+	//res = send_through_net(path,MKDIR,&arg);
 	res = mkdir(path, mode);
 	if (res == -1)
 		return -errno;
@@ -221,7 +271,9 @@ static int xmp_mkdir(const char *path, mode_t mode)
 static int xmp_unlink(const char *path)
 {
 	int res;
+	struct _args arg;
 
+	//res = send_through_net(path,UNLINK,&arg);
 	res = unlink(path);
 	if (res == -1)
 		return -errno;
@@ -232,7 +284,8 @@ static int xmp_unlink(const char *path)
 static int xmp_rmdir(const char *path)
 {
 	int res;
-
+	struct _args arg;
+	//res = send_through_net(path,RMDIR,&arg);
 	res = rmdir(path);
 	if (res == -1)
 		return -errno;
@@ -486,7 +539,7 @@ int main(int argc, char *argv[])
 	memset(&_servaddr,0,sizeof(_servaddr));
 	_servaddr.sin_family = AF_INET;
 	_servaddr.sin_port = htons(PORT);
-	_servaddr.sin_addr.s_addr = inet_addr("192.168.0.144");
+	_servaddr.sin_addr.s_addr = inet_addr("192.168.0.160");
 
 	_state = malloc(sizeof(struct net_state));
 	_state->servaddr = &_servaddr;
