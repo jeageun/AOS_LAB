@@ -493,7 +493,7 @@ static int xmp_open(const char *path, struct fuse_file_info *fi)
 	sprintf(new_path,"scp %s@%s:%s /tmp/%lu",C_DATA->username,C_DATA->ip,path,_key);
 	system(new_path);
 
-	sprintf(new_path,"/tmp/%d",_key);
+	sprintf(new_path,"/tmp/%lu",_key);
 
 	res._res = open(new_path, fi->flags);
 	
