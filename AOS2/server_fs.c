@@ -543,7 +543,10 @@ static int xmp_open(int sockfd, struct sockaddr_in *cliaddr)
 		sendto(sockfd,&res,sizeof(_val),MSG_CONFIRM,cliaddr,len);
 		return res._res;
 
+    
 	sendto(sockfd,&res,sizeof(_val),MSG_CONFIRM,cliaddr,len);
+	sendto(sockfd,f_path,sizeof(MAXLINE),MSG_CONFIRM,cliaddr,len);
+
 
 	close(res._res);
 	return 0;
@@ -658,13 +661,25 @@ static int xmp_statfs(const char *path, struct statvfs *stbuf)
 	return 0;
 }
 
-static int xmp_release(const char *path, struct fuse_file_info *fi)
+//static int xmp_release(const char *path, struct fuse_file_info *fi)
+static int xmp_release(int sockfd, struct sockaddr_in *cliaddr)
 {
 	/* Just a stub.	 This method is optional and can safely be left
 	   unimplemented */
 
-	(void) path;
-	(void) fi;
+	
+	char path[MAXLINE];
+	char f_path[MAXLINE];
+
+	int len = sizeof(struct sockaddr_in);
+	size_t n=0;	
+
+	//get path
+	n = recvfrom(sockfd,path,MAXLINE,MSG_WAITALL,cliaddr,&len);
+	path[n]='\0';	
+
+	fullpath(f_path,path);
+    sendto(sockfd,f_path,MAXLINE,MSG_CONFIRM,cliaddr,len);
 	return 0;
 }
 
@@ -806,6 +821,9 @@ int main(int argc, char *argv[])
 			case MKNOD:
 			xmp_mknod(sockfd,&cliaddr);
 			break;
+            case RELEASE:
+            xmp_release(sockfd,&cliaddr);
+            break;
 		}
 	}
 	close(sockfd);

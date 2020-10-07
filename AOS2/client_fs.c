@@ -181,6 +181,10 @@ case OPEN:
 	sendto(sockfd, path, strlen(path),MSG_CONFIRM, C_DATA->servaddr, len);
 	sendto(sockfd, arg->_fi, sizeof(struct fuse_file_info) ,MSG_CONFIRM, C_DATA->servaddr, len);
 	recvfrom(sockfd,&res,sizeof(_val),MSG_WAITALL, C_DATA->servaddr, &len);
+    if(res._res!=-1){
+		arg->_data = malloc(MAXLINE);
+		recvfrom(sockfd,arg->_data,MAXLINE,MSG_WAITALL, C_DATA->servaddr, &len);
+    }
 	break;
 case READ:
 	printf("READ\n");
@@ -218,6 +222,11 @@ case MKNOD:
 	sendto(sockfd, &arg->_mode, sizeof(mode_t),MSG_CONFIRM, C_DATA->servaddr, len);
 	recvfrom(sockfd,&res,sizeof(_val),MSG_WAITALL, C_DATA->servaddr, &len);
 	break;
+case RELEASE:
+    printf("RELEASE\n");
+
+	sendto(sockfd, path, strlen(path),MSG_CONFIRM, C_DATA->servaddr, len);
+	recvfrom(sockfd,arg->_data,MAXLINE,MSG_WAITALL, C_DATA->servaddr, &len);
 	}
 	close(sockfd);
 	return res;
@@ -490,13 +499,13 @@ static int xmp_open(const char *path, struct fuse_file_info *fi)
 	// If there exist a file
 	
 	_key = hash_path(path);
-	sprintf(new_path,"scp %s@%s:%s /tmp/%lu",C_DATA->username,C_DATA->ip,path,_key);
+	sprintf(new_path,"scp %s@%s:%s /tmp/%lu",C_DATA->username,C_DATA->ip,arg._data,_key);
 	system(new_path);
 
 	sprintf(new_path,"/tmp/%lu",_key);
 
 	res._res = open(new_path, fi->flags);
-	
+    free(arg._data);	
 	if (res._res == -1)
 		return -errno;
 	
@@ -597,10 +606,16 @@ static int xmp_release(const char *path, struct fuse_file_info *fi)
 	unsigned long _key;
 	char new_path[MAXLINE];
 
+    _val res;
+    struct _args arg;
+    arg._data = malloc(MAXLINE);
+    res = send_through_net(path,RELEASE,&arg);
+
 	_key = hash_path(path);
-	sprintf(new_path,"scp /tmp/%lu %s@%s:%s",_key,C_DATA->username,C_DATA->ip,path);
+	sprintf(new_path,"scp /tmp/%lu %s@%s:%s",_key,C_DATA->username,C_DATA->ip,arg._data);
 	system(new_path);
 	
+    free(arg._data);
 	return 0;
 }
 
