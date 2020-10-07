@@ -554,14 +554,14 @@ static int xmp_open(int sockfd, struct sockaddr_in *cliaddr)
 	recvfrom(sockfd,&fi,sizeof(struct fuse_file_info),MSG_WAITALL,cliaddr,&len);
 
 	res._res = open(f_path, fi.flags);
-	if (res._res == -1)
+	if (res._res == -1){
 		res._errno = -errno;
 		sendto(sockfd,&res,sizeof(_val),MSG_CONFIRM,cliaddr,len);
 		return res._res;
-
+	}
     
 	sendto(sockfd,&res,sizeof(_val),MSG_CONFIRM,cliaddr,len);
-	sendto(sockfd,f_path,sizeof(MAXLINE),MSG_CONFIRM,cliaddr,len);
+	sendto(sockfd,f_path,MAXLINE,MSG_CONFIRM,cliaddr,len);
 
 
 	close(res._res);
