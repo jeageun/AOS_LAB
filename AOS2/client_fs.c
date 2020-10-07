@@ -38,6 +38,18 @@
 #define PORT 18089
 #define MAXLINE 1024
 
+
+unsigned long hash_path(unsigned char *str)
+{
+  unsigned long hash = 5381;
+  int c;
+  while (c = *str++)
+    hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
+
+  return hash;
+}
+
+
 enum operations{
   GETATTR ,
   READLINK ,
@@ -73,6 +85,8 @@ enum operations{
 
 struct net_state {
 	struct sockaddr_in* servaddr;
+	char ip[INET_ADDRSTRLEN];
+	char username[32];
 };
 #define C_DATA ((struct net_state *) ((struct fuse_context*)fuse_get_context())->private_data)
 
@@ -466,13 +480,26 @@ static int xmp_open(const char *path, struct fuse_file_info *fi)
 {
 	_val res;
 	struct _args arg;
+	char new_path[MAXLINE];
+	unsigned long _key;
+
 	arg._fi = fi;
 	res = send_through_net(path,OPEN,&arg);
-	//res = open(path, fi->flags);
 	if (res._res == -1)
 		return res._errno;
+	// If there exist a file
+	
+	_key = hash_path(path);
+	sprintf(new_path,"scp %s@%s:%s /tmp/%lu",C_DATA->username,C_DATA->ip,path,_key);
+	system(new_path);
 
-	close(res._res);
+	sprintf(new_path,"/tmp/%d",_key);
+
+	res._res = open(new_path, fi->flags);
+	
+	if (res._res == -1)
+		return -errno;
+	
 	return 0;
 }
 
@@ -481,7 +508,9 @@ static int xmp_read(const char *path, char *buf, size_t size, off_t offset,
 {
 	int fd;
 	_val res;
-
+	char new_path[MAXLINE];
+	unsigned long _key;
+/*
 	(void) fi;
 	struct _args arg;
 	arg._size = size;
@@ -494,16 +523,19 @@ static int xmp_read(const char *path, char *buf, size_t size, off_t offset,
 		return res._errno;
 	}
 	return res._res;
-	//fd = open(path, O_RDONLY);
-	//if (fd == -1)
-	//	return -errno;
-	//
-	//res = pread(fd, buf, size, offset);
-	//if (res == -1)
-	//	res = -errno;
+*/
+	_key = hash_path(path);
+	sprintf(new_path,"/tmp/%lu",_key);
+	fd = open(new_path, O_RDONLY);
+	if (fd == -1)
+		return -errno;
+	
+	res._res = pread(fd, buf, size, offset);
+	if (res._res == -1)
+		res._res = -errno;
 
-	//close(fd);
-	//return res;
+	close(fd);
+	return res._res;
 }
 
 static int xmp_write(const char *path, const char *buf, size_t size,
@@ -511,9 +543,11 @@ static int xmp_write(const char *path, const char *buf, size_t size,
 {
 	int fd;
 	_val res;
+	char new_path[MAXLINE];
+	unsigned long _key;
 
 	(void) fi;
-	
+	/*
 	struct _args arg;
 	arg._size = size;
 	arg._offset = offset;
@@ -522,19 +556,24 @@ static int xmp_write(const char *path, const char *buf, size_t size,
 	if(res._res==-1)
 		return res._errno;
 	return res._res;
+	*/	
+
 	
-	/*
-	fd = open(path, O_WRONLY);
+	_key = hash_path(path);
+	sprintf(new_path,"/tmp/%lu",_key);
+	fd = open(new_path, O_WRONLY);
 	if (fd == -1)
 		return -errno;
 
-	res = pwrite(fd, buf, size, offset);
-	if (res == -1)
-		res = -errno;
+	res._res = pwrite(fd, buf, size, offset);
+	if (res._res == -1)
+		res._res = -errno;
 
 	close(fd);
-	return res;
-	*/
+	
+	
+	return res._res;
+	
 }
 
 static int xmp_statfs(const char *path, struct statvfs *stbuf)
@@ -555,6 +594,13 @@ static int xmp_release(const char *path, struct fuse_file_info *fi)
 
 	(void) path;
 	(void) fi;
+	unsigned long _key;
+	char new_path[MAXLINE];
+
+	_key = hash_path(path);
+	sprintf(new_path,"scp /tmp/%lu %s@%s:%s",_key,C_DATA->username,C_DATA->ip,path);
+	system(new_path);
+	
 	return 0;
 }
 
@@ -644,6 +690,7 @@ static struct fuse_operations xmp_oper = {
 
 int main(int argc, char *argv[])
 {
+	
 	struct sockaddr_in _servaddr;
 	struct net_state* _state;
 
@@ -654,6 +701,8 @@ int main(int argc, char *argv[])
 
 	_state = malloc(sizeof(struct net_state));
 	_state->servaddr = &_servaddr;
+	inet_ntop(AF_INET, &(_servaddr.sin_addr), _state->ip, INET_ADDRSTRLEN);
+	strcpy(_state->username,"geun");
 
 	umask(0);
 	return fuse_main(argc, argv, &xmp_oper, _state);
