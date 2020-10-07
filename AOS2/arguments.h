@@ -12,6 +12,7 @@ struct _args {
     mode_t _mode;
 	struct fuse_file_info *_fi;
 	off_t _offset;
+    struct timespec* _time
 };
 
 typedef struct _val {

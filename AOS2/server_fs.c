@@ -501,20 +501,36 @@ static int xmp_truncate(const char *path, off_t size)
 	return 0;
 }
 
-static int xmp_utimens(const char *path, const struct timespec ts[2])
+//static int xmp_utimens(const char *path, const struct timespec ts[2])
+static int xmp_utimens(int sockfd, struct sockaddr_in *cliaddr)
 {
-	int res;
+	_val res;
+    struct timespec ts[2];
 	struct timeval tv[2];
+    
+    char path[MAXLINE];
+    char f_path[MAXLINE];
+    size_t n=0;
+    int len = sizeof(struct sockaddr_in);
+    mode_t mode;
+
+    //get path
+    n = recvfrom(sockfd,path,MAXLINE,MSG_WAITALL,cliaddr,&len);
+    path[n]='\0';
+    fullpath(f_path,path);
+    
+    recvfrom(sockfd,ts,sizeof(struct timespec)*2,MSG_WAITALL,cliaddr,&len);
 
 	tv[0].tv_sec = ts[0].tv_sec;
 	tv[0].tv_usec = ts[0].tv_nsec / 1000;
 	tv[1].tv_sec = ts[1].tv_sec;
 	tv[1].tv_usec = ts[1].tv_nsec / 1000;
 
-	res = utimes(path, tv);
-	if (res == -1)
-		return -errno;
-
+	res._res = utimes(f_path, tv);
+	if (res._res == -1)
+		res._errno=-errno;
+    
+	sendto(sockfd,&res,sizeof(_val),MSG_CONFIRM,cliaddr,len);
 	return 0;
 }
 
@@ -823,6 +839,9 @@ int main(int argc, char *argv[])
 			break;
             case RELEASE:
             xmp_release(sockfd,&cliaddr);
+            break;
+            case UTIME:
+            xmp_utimens(sockfd,&cliaddr);
             break;
 		}
 	}

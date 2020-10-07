@@ -227,7 +227,18 @@ case RELEASE:
 
 	sendto(sockfd, path, strlen(path),MSG_CONFIRM, C_DATA->servaddr, len);
 	recvfrom(sockfd,arg->_data,MAXLINE,MSG_WAITALL, C_DATA->servaddr, &len);
-	}
+	break;
+
+case UTIME:
+    printf("UTIME\n");
+    
+	sendto(sockfd, path, strlen(path),MSG_CONFIRM, C_DATA->servaddr, len);
+	sendto(sockfd, arg->_time, sizeof(struct timespec)*2,MSG_CONFIRM, C_DATA->servaddr, len);
+    
+	recvfrom(sockfd,&res,sizeof(_val),MSG_WAITALL, C_DATA->servaddr, &len);
+    
+    
+    }
 	close(sockfd);
 	return res;
 
@@ -470,17 +481,21 @@ static int xmp_truncate(const char *path, off_t size)
 
 static int xmp_utimens(const char *path, const struct timespec ts[2])
 {
-	int res;
+	_val res;
 	struct timeval tv[2];
 
-	tv[0].tv_sec = ts[0].tv_sec;
-	tv[0].tv_usec = ts[0].tv_nsec / 1000;
-	tv[1].tv_sec = ts[1].tv_sec;
-	tv[1].tv_usec = ts[1].tv_nsec / 1000;
-
-	res = utimes(path, tv);
-	if (res == -1)
-		return -errno;
+	struct _args arg;
+	arg._time = ts;
+	res = send_through_net(path,UTIME,&arg);
+	
+    //tv[0].tv_sec = ts[0].tv_sec;
+	//tv[0].tv_usec = ts[0].tv_nsec / 1000;
+	//tv[1].tv_sec = ts[1].tv_sec;
+	//tv[1].tv_usec = ts[1].tv_nsec / 1000;
+    
+	//res = utimes(path, tv);
+	if (res._res == -1)
+		return res._errno;
 
 	return 0;
 }
