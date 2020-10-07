@@ -104,21 +104,21 @@ _val send_through_net(const char *path,int opcode, struct _args *arg)
 	switch(opcode){
 case GETATTR:
 	printf("GETATTR\n");
-	fflush(stdout);
+	//fflush(stdout);
 	sendto(sockfd, path, strlen(path),MSG_CONFIRM, C_DATA->servaddr, len);
 	recvfrom(sockfd,&res,sizeof(_val),MSG_WAITALL, C_DATA->servaddr, &len);
 	recvfrom(sockfd,arg->_stbuf,sizeof(*arg->_stbuf),MSG_WAITALL,C_DATA->servaddr,&len);
 	break;
 case ACCESS:
 	printf("ACCESS\n");
-	fflush(stdout);
+	//fflush(stdout);
 	sendto(sockfd, path, strlen(path),MSG_CONFIRM, C_DATA->servaddr, len);
 	sendto(sockfd, arg, sizeof(struct _args),MSG_CONFIRM, C_DATA->servaddr, len);
 	recvfrom(sockfd,&res,sizeof(_val),MSG_WAITALL, C_DATA->servaddr, &len);
 	break;
 case READLINK:
 	printf("READLINK\n");
-	fflush(stdout);
+	//fflush(stdout);
 	sendto(sockfd, path, strlen(path),MSG_CONFIRM, C_DATA->servaddr, len);
 	sendto(sockfd, &arg->_size,sizeof(size_t),MSG_CONFIRM, C_DATA->servaddr, len);
 	sendto(sockfd, arg->_buf, arg->_size ,MSG_CONFIRM, C_DATA->servaddr, len);
@@ -129,7 +129,7 @@ case READLINK:
 	break;
 case READDIR:
 	printf("READDIRi\n");
-	fflush(stdout);
+	//fflush(stdout);
 	sendto(sockfd, path, strlen(path),MSG_CONFIRM, C_DATA->servaddr, len);
 	recvfrom(sockfd,&res,sizeof(_val),MSG_WAITALL, C_DATA->servaddr, &len);
 	if(res._res >= 0){
@@ -140,51 +140,51 @@ case READDIR:
 	break;
 case MKDIR:
 	printf("MKDIR\n");
-	fflush(stdout);
+	//fflush(stdout);
 	sendto(sockfd, path, strlen(path),MSG_CONFIRM, C_DATA->servaddr, len);
 	sendto(sockfd, &arg->_mode,sizeof(mode_t),MSG_CONFIRM, C_DATA->servaddr,len);
 	recvfrom(sockfd,&res,sizeof(_val),MSG_WAITALL, C_DATA->servaddr, &len);
 	break;
 case UNLINK:
 	printf("UNLINK\n");
-	fflush(stdout);
+	//fflush(stdout);
 	sendto(sockfd, path, strlen(path),MSG_CONFIRM, C_DATA->servaddr, len);
 	recvfrom(sockfd,&res,sizeof(_val),MSG_WAITALL, C_DATA->servaddr, &len);
 	break;
 case RMDIR:
 	printf("RMDIR\n");
-	fflush(stdout);
+	//fflush(stdout);
 	sendto(sockfd, path, strlen(path),MSG_CONFIRM, C_DATA->servaddr, len);
 	recvfrom(sockfd,&res,sizeof(_val),MSG_WAITALL, C_DATA->servaddr, &len);
 	break;
 case SYMLINK:
 	printf("SYMLINK\n");
-	fflush(stdout);
+	//fflush(stdout);
 	sendto(sockfd, path, strlen(path),MSG_CONFIRM, C_DATA->servaddr, len);
 	recvfrom(sockfd,&res,sizeof(_val),MSG_WAITALL, C_DATA->servaddr, &len);
 	break;	
 case RENAME:
 	printf("RENAME\n");
-	fflush(stdout);
+	//fflush(stdout);
 	sendto(sockfd, path, strlen(path),MSG_CONFIRM, C_DATA->servaddr, len);
 	recvfrom(sockfd,&res,sizeof(_val),MSG_WAITALL, C_DATA->servaddr, &len);
 	break;	
 case LINK:
 	printf("LINK\n");
-	fflush(stdout);
+	//fflush(stdout);
 	sendto(sockfd, path, strlen(path),MSG_CONFIRM, C_DATA->servaddr, len);
 	recvfrom(sockfd,&res,sizeof(_val),MSG_WAITALL, C_DATA->servaddr, &len);
 	break;
 case OPEN:
 	printf("OPEN\n");
-	fflush(stdout);
+	//fflush(stdout);
 	sendto(sockfd, path, strlen(path),MSG_CONFIRM, C_DATA->servaddr, len);
 	sendto(sockfd, arg->_fi, sizeof(struct fuse_file_info) ,MSG_CONFIRM, C_DATA->servaddr, len);
 	recvfrom(sockfd,&res,sizeof(_val),MSG_WAITALL, C_DATA->servaddr, &len);
 	break;
 case READ:
 	printf("READ\n");
-	fflush(stdout);
+	//fflush(stdout);
 	sendto(sockfd, path, strlen(path),MSG_CONFIRM, C_DATA->servaddr, len);
 	sendto(sockfd, arg, sizeof(struct _args),MSG_CONFIRM, C_DATA->servaddr, len);
 	recvfrom(sockfd,&res,sizeof(_val),MSG_WAITALL, C_DATA->servaddr, &len);
@@ -195,7 +195,7 @@ case READ:
 	break;
 case WRITE:
 	printf("WRITE\n");
-	fflush(stdout);
+	//fflush(stdout);
 
 	sendto(sockfd, path, strlen(path),MSG_CONFIRM, C_DATA->servaddr, len);
 	sendto(sockfd, arg, sizeof(struct _args),MSG_CONFIRM, C_DATA->servaddr, len);
@@ -204,7 +204,7 @@ case WRITE:
 	break;
 case CHMOD:
 	printf("CHMOD\n");
-	fflush(stdout);
+	//fflush(stdout);
 	
 	sendto(sockfd, path, strlen(path),MSG_CONFIRM, C_DATA->servaddr, len);
 	sendto(sockfd, &arg->_mode, sizeof(mode_t),MSG_CONFIRM, C_DATA->servaddr, len);
@@ -212,7 +212,7 @@ case CHMOD:
 	break;
 case MKNOD:
 	printf("MKNOD\n");
-	fflush(stdout);
+	//fflush(stdout);
 
 	sendto(sockfd, path, strlen(path),MSG_CONFIRM, C_DATA->servaddr, len);
 	sendto(sockfd, &arg->_mode, sizeof(mode_t),MSG_CONFIRM, C_DATA->servaddr, len);
@@ -693,16 +693,25 @@ int main(int argc, char *argv[])
 	
 	struct sockaddr_in _servaddr;
 	struct net_state* _state;
+	//USAGE : ./client_fs [FUSE mount options] mntpoint user ip port
+	//Example ./client_fs -s -d test geun 192.168.0.160 18089
+	int port = PORT;
+	char* ip = "192.168.0.160";
+	char* user = "geun";
+
+	port = atoi(argv[--argc]);
+	ip = argv[--argc];
+	user = argv[--argc];
 
 	memset(&_servaddr,0,sizeof(_servaddr));
 	_servaddr.sin_family = AF_INET;
-	_servaddr.sin_port = htons(PORT);
-	_servaddr.sin_addr.s_addr = inet_addr("192.168.0.160");
+	_servaddr.sin_port = htons(port);
+	_servaddr.sin_addr.s_addr = inet_addr(ip);
 
 	_state = malloc(sizeof(struct net_state));
 	_state->servaddr = &_servaddr;
 	inet_ntop(AF_INET, &(_servaddr.sin_addr), _state->ip, INET_ADDRSTRLEN);
-	strcpy(_state->username,"geun");
+	strcpy(_state->username,user);
 
 	umask(0);
 	return fuse_main(argc, argv, &xmp_oper, _state);
