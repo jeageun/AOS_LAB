@@ -188,8 +188,14 @@ case WRITE:
 	sendto(sockfd, arg->_data, arg->_size,MSG_CONFIRM, C_DATA->servaddr, len);
 	recvfrom(sockfd,&res,sizeof(_val),MSG_WAITALL, C_DATA->servaddr, &len);
 	break;
-
-
+case CHMOD:
+	printf("CHMOD\n");
+	printf(stdout);
+	
+	sendto(sockfd, path, strlen(path),MSG_CONFIRM, C_DATA->servaddr, len);
+	sendto(sockfd, &arg->_mode, sizeof(mode_t),MSG_CONFIRM, C_DATA->servaddr, len);
+	recvfrom(sockfd,&res,sizeof(_val),MSG_WAITALL, C_DATA->servaddr, &len);
+	break;
 	}
 	close(sockfd);
 	return res;
@@ -400,11 +406,13 @@ static int xmp_link(const char *from, const char *to)
 
 static int xmp_chmod(const char *path, mode_t mode)
 {
-	int res;
-
-	res = chmod(path, mode);
-	if (res == -1)
-		return -errno;
+	_val res;
+	struct _args arg;
+	arg._mode = mode;
+	res = send_through_net(path,CHMOD,&arg);
+	//res = chmod(path, mode);
+	if (res._res == -1)
+		return res._errno;
 
 	return 0;
 }

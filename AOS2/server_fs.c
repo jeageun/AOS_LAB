@@ -387,14 +387,26 @@ static int xmp_link(int sockfd, struct sockaddr_in *cliaddr)
 	return 0;
 }
 
-static int xmp_chmod(const char *path, mode_t mode)
+//static int xmp_chmod(const char *path, mode_t mode)
+static int xmp_chmod(int sockfd, struct sockaddr_in *cliaddr)
 {
-	int res;
+	char path[MAXLINE];
+	size_t n=0;
+	int len = sizeof(struct sockaddr_in);
+	mode_t mode;
+	_val res;
+	
+	//get path
+	n = recvfrom(sockfd,path,MAXLINE,MSG_WAITALL,cliaddr,&len);
+	path[n]='\0';	
+	recvfrom(sockfd,&mode,sizeof(mode_t),MSG_WAITALL,cliaddr,&len);
 
-	res = chmod(path, mode);
-	if (res == -1)
-		return -errno;
 
+	res._res = chmod(path, mode);
+	if (res._res == -1)
+		res._errno = -errno;
+
+	sendto(sockfd,&res,sizeof(_val),MSG_CONFIRM,cliaddr,len);
 	return 0;
 }
 
