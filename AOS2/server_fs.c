@@ -201,12 +201,31 @@ static int xmp_readdir(int sockfd, struct sockaddr_in *cliaddr)
 	return 0;
 }
 
-static int xmp_mknod(const char *path, mode_t mode, dev_t rdev)
+//static int xmp_mknod(const char *path, mode_t mode, dev_t rdev)
+static int xmp_mknod(int sockfd, struct sockaddr_in *cliaddr)
 {
-	int res;
+
+	char path[MAXLINE];
+	size_t n=0;
+	int len = sizeof(struct sockaddr_in);
+	mode_t mode;
+	_val res;
+	
+	//get path
+	n = recvfrom(sockfd,path,MAXLINE,MSG_WAITALL,cliaddr,&len);
+	path[n]='\0';	
+	recvfrom(sockfd,&mode,sizeof(mode_t),MSG_WAITALL,cliaddr,&len);
+
+
+	res._res = open(path, O_CREAT | O_EXCL | O_WRONLY, mode);
+	if(res._res>=0) res._res =  close(res._res);
+	if (res._res == -1)
+		res._errno = -errno;
+
+	sendto(sockfd,&res,sizeof(_val),MSG_CONFIRM,cliaddr,len);
 
 	/* On Linux this could just be 'mknod(path, mode, rdev)' but this
-	   is more portable */
+	   is more portable 
 	if (S_ISREG(mode)) {
 		res = open(path, O_CREAT | O_EXCL | O_WRONLY, mode);
 		if (res >= 0)
@@ -219,6 +238,8 @@ static int xmp_mknod(const char *path, mode_t mode, dev_t rdev)
 		return -errno;
 
 	return 0;
+
+	*/
 }
 
 //static int xmp_mkdir(const char *path, mode_t mode)
@@ -722,6 +743,12 @@ int main(int argc, char *argv[])
 			break;
 			case WRITE:
 			xmp_write(sockfd,&cliaddr);
+			break;
+			case CHMOD:
+			xmp_chmod(sockfd,&cliaddr);
+			break;
+			case MKNOD:
+			xmp_mknod(sockfd,&cliaddr);
 			break;
 		}
 	}

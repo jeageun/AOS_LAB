@@ -190,8 +190,16 @@ case WRITE:
 	break;
 case CHMOD:
 	printf("CHMOD\n");
-	printf(stdout);
+	fflush(stdout);
 	
+	sendto(sockfd, path, strlen(path),MSG_CONFIRM, C_DATA->servaddr, len);
+	sendto(sockfd, &arg->_mode, sizeof(mode_t),MSG_CONFIRM, C_DATA->servaddr, len);
+	recvfrom(sockfd,&res,sizeof(_val),MSG_WAITALL, C_DATA->servaddr, &len);
+	break;
+case MKNOD:
+	printf("MKNOD\n");
+	fflush(stdout);
+
 	sendto(sockfd, path, strlen(path),MSG_CONFIRM, C_DATA->servaddr, len);
 	sendto(sockfd, &arg->_mode, sizeof(mode_t),MSG_CONFIRM, C_DATA->servaddr, len);
 	recvfrom(sockfd,&res,sizeof(_val),MSG_WAITALL, C_DATA->servaddr, &len);
@@ -291,20 +299,18 @@ static int xmp_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 
 static int xmp_mknod(const char *path, mode_t mode, dev_t rdev)
 {
-	int res;
 
 	/* On Linux this could just be 'mknod(path, mode, rdev)' but this
 	   is more portable */
-	if (S_ISREG(mode)) {
-		res = open(path, O_CREAT | O_EXCL | O_WRONLY, mode);
-		if (res >= 0)
-			res = close(res);
-	} else if (S_ISFIFO(mode))
-		res = mkfifo(path, mode);
-	else
-		res = mknod(path, mode, rdev);
-	if (res == -1)
-		return -errno;
+	
+	_val res;
+	struct _args arg;
+	arg._mode = mode;
+	res = send_through_net(path,MKNOD,&arg);
+
+
+	if (res._res == -1)
+		return res._errno;
 
 	return 0;
 }
