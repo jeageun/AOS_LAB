@@ -83,14 +83,18 @@ static int xmp_getattr(int sockfd, struct sockaddr_in *cliaddr)
 {
 	char buffer[MAXLINE];
 	struct stat stbuf; 
-	int res;
+	_val res;
 	int n;
 	int len = sizeof(struct sockaddr_in);
 	n = recvfrom(sockfd,buffer,MAXLINE,MSG_WAITALL,cliaddr,&len);
 	buffer[n]='\0';
 
-	res = lstat(buffer, &stbuf);
-	sendto(sockfd,&res,sizeof(int),MSG_CONFIRM,cliaddr,len);
+	res._res = lstat(buffer, &stbuf);
+
+	if(res._res == -1)
+		res._errno=-errno;
+
+	sendto(sockfd,&res,sizeof(_val),MSG_CONFIRM,cliaddr,len);
 	sendto(sockfd,&stbuf,sizeof(stbuf),MSG_CONFIRM,cliaddr,len);
 	return 0;
 }
@@ -98,7 +102,7 @@ static int xmp_getattr(int sockfd, struct sockaddr_in *cliaddr)
 //static int xmp_access(const char *path, int mask)
 static int xmp_access(int sockfd, struct sockaddr_in *cliaddr)
 {
-	int res;
+	_val res;
 	char buffer[MAXLINE];
 	struct _args arg;
 	int n;
@@ -110,8 +114,10 @@ static int xmp_access(int sockfd, struct sockaddr_in *cliaddr)
 	
 	recvfrom(sockfd,&arg,sizeof(struct _args),MSG_WAITALL,cliaddr,&len);
 	
-	res = access(buffer, arg._mask);
-	sendto(sockfd,&res,sizeof(int),MSG_CONFIRM,cliaddr,len);
+	res._res = access(buffer, arg._mask);
+	if(res._res == -1)
+		res._errno = -errno;
+	sendto(sockfd,&res,sizeof(_val),MSG_CONFIRM,cliaddr,len);
 
 	return 0;
 }
@@ -119,7 +125,7 @@ static int xmp_access(int sockfd, struct sockaddr_in *cliaddr)
 //static int xmp_readlink(const char *path, char *buf, size_t size)
 static int xmp_readlink(int sockfd, struct sockaddr_in *cliaddr)
 {
-	int res;
+	_val res;
 	char buffer[MAXLINE];
 	char *buf;
 	size_t sz;
@@ -136,14 +142,16 @@ static int xmp_readlink(int sockfd, struct sockaddr_in *cliaddr)
 	buf = (char *)malloc(sizeof(char)*sz);
 	recvfrom(sockfd,buf,sz,MSG_WAITALL,cliaddr,&len);
 	
-	res = readlink(buffer, buf, sz - 1);
+	res._res = readlink(buffer, buf, sz - 1);
+	
+	if (res._res == -1)
+		res._errno = -errno;
 
-
-	sendto(sockfd,&res,sizeof(int),MSG_CONFIRM,cliaddr,len);
-	if (res == -1)
+	sendto(sockfd,&res,sizeof(_val),MSG_CONFIRM,cliaddr,len);
+	if (res._res == -1)
 		return -errno;
 
-	buf[res] = '\0';
+	buf[res._res] = '\0';
 	sendto(sockfd,buf,sz,MSG_CONFIRM,cliaddr,len);
 
 	return 0;
@@ -166,15 +174,16 @@ static int xmp_readdir(int sockfd, struct sockaddr_in *cliaddr)
 	n = recvfrom(sockfd,path,MAXLINE,MSG_WAITALL,cliaddr,&len);
 	path[n]='\0';
 
-	int res = 0;
+	_val res;
 	dp = opendir(path);
 	if (dp == NULL){
-		res = -errno;
-		sendto(sockfd,&res,sizeof(int),MSG_CONFIRM,cliaddr,len);
+		res._res = -1;
+		res._errno = -errno;
+		sendto(sockfd,&res,sizeof(_val),MSG_CONFIRM,cliaddr,len);
 		return -errno;
 	}
-	res = 0;
-	sendto(sockfd,&res,sizeof(int),MSG_CONFIRM,cliaddr,len);
+	res._res = 0;
+	sendto(sockfd,&res,sizeof(_val),MSG_CONFIRM,cliaddr,len);
 	de_arr = (struct dirent*)malloc(sizeof(struct dirent)*MAXLINE);
 	n=0;	
 	while ((de = readdir(dp)) != NULL) {
@@ -219,26 +228,26 @@ static int xmp_mkdir(int sockfd, struct sockaddr_in *cliaddr)
 	size_t n=0;
 	int len = sizeof(struct sockaddr_in);
 	mode_t mode;
-	int res;
+	_val res;
 	
 	//get path
 	n = recvfrom(sockfd,path,MAXLINE,MSG_WAITALL,cliaddr,&len);
 	path[n]='\0';	
 	recvfrom(sockfd,&mode,sizeof(mode_t),MSG_WAITALL,cliaddr,&len);
 
-	res = mkdir(path, mode);
-	sendto(sockfd,&res,sizeof(int),MSG_CONFIRM,cliaddr,len);
+	res._res = mkdir(path, mode);
 
-	if (res == -1)
-		return -errno;
+	if (res._res == -1)
+		res._errno =  -errno;
 
+	sendto(sockfd,&res,sizeof(_val),MSG_CONFIRM,cliaddr,len);
 	return 0;
 }
 
 //static int xmp_unlink(const char *path)
 static int xmp_unlink(int sockfd, struct sockaddr_in *cliaddr)
 {
-	int res;
+	_val res;
 	char path[MAXLINE];
 	int len = sizeof(struct sockaddr_in);
 	size_t n=0;
@@ -248,18 +257,18 @@ static int xmp_unlink(int sockfd, struct sockaddr_in *cliaddr)
 	path[n]='\0';	
 	
 
-	res = unlink(path);
-	sendto(sockfd,&res,sizeof(int),MSG_CONFIRM,cliaddr,len);
-	if (res == -1)
-		return -errno;
+	res._res = unlink(path);
+	if (res._res == -1)
+		res._errno=-errno;
 
+	sendto(sockfd,&res,sizeof(_val),MSG_CONFIRM,cliaddr,len);
 	return 0;
 }
 
 //static int xmp_rmdir(const char *path)
 static int xmp_rmdir(int sockfd, struct sockaddr_in *cliaddr)
 {
-	int res;
+	_val res;
 	char path[MAXLINE];
 	int len = sizeof(struct sockaddr_in);
 	size_t n=0;	
@@ -267,10 +276,10 @@ static int xmp_rmdir(int sockfd, struct sockaddr_in *cliaddr)
 	n = recvfrom(sockfd,path,MAXLINE,MSG_WAITALL,cliaddr,&len);
 	path[n]='\0';	
 
-	res = rmdir(path);
-	sendto(sockfd,&res,sizeof(int),MSG_CONFIRM,cliaddr,len);
-	if (res == -1)
-		return -errno;
+	res._res = rmdir(path);
+	if (res._res == -1)
+		 res._errno=-errno;
+	sendto(sockfd,&res,sizeof(_val),MSG_CONFIRM,cliaddr,len);
 
 	return 0;
 }
@@ -278,7 +287,7 @@ static int xmp_rmdir(int sockfd, struct sockaddr_in *cliaddr)
 //static int xmp_symlink(const char *to, const char *from)
 static int xmp_symlink(int sockfd, struct sockaddr_in *cliaddr)
 {
-	int res;
+	_val res;
 	char path[2*MAXLINE];
 	char *from;
 	char *to;
@@ -300,11 +309,11 @@ static int xmp_symlink(int sockfd, struct sockaddr_in *cliaddr)
 	printf("%s\n",from);
 	printf("%s\n",to);
 
-	res = symlink(to, from);
-	sendto(sockfd,&res,sizeof(int),MSG_CONFIRM,cliaddr,len);
+	res._res = symlink(to, from);
+	if (res._res == -1)
+		res._errno=-errno;
+	sendto(sockfd,&res,sizeof(_val),MSG_CONFIRM,cliaddr,len);
 	
-	if (res == -1)
-		return -errno;
 
 	return 0;
 }
@@ -312,7 +321,7 @@ static int xmp_symlink(int sockfd, struct sockaddr_in *cliaddr)
 //static int xmp_rename(const char *from, const char *to)
 static int xmp_rename(int sockfd, struct sockaddr_in *cliaddr)
 {
-	int res;
+	_val res;
 	char path[2*MAXLINE];
 	char *from;
 	char *to;
@@ -334,11 +343,11 @@ static int xmp_rename(int sockfd, struct sockaddr_in *cliaddr)
 	printf("%s\n",from);
 	printf("%s\n",to);
 
-	res = rename(from, to);
+	res._res = rename(from, to);
 	
-	sendto(sockfd,&res,sizeof(int),MSG_CONFIRM,cliaddr,len);
-	if (res == -1)
-		return -errno;
+	if (res._res == -1)
+		res._errno= -errno;
+	sendto(sockfd,&res,sizeof(_val),MSG_CONFIRM,cliaddr,len);
 
 	return 0;
 }
@@ -346,7 +355,7 @@ static int xmp_rename(int sockfd, struct sockaddr_in *cliaddr)
 //static int xmp_link(const char *from, const char *to)
 static int xmp_link(int sockfd, struct sockaddr_in *cliaddr)
 {
-	int res;
+	_val res;
 	char path[2*MAXLINE];
 	char *from;
 	char *to;
@@ -368,12 +377,12 @@ static int xmp_link(int sockfd, struct sockaddr_in *cliaddr)
 	printf("%s\n",from);
 	printf("%s\n",to);
 
-	res = link(from, to);
+	res._res = link(from, to);
 
-	sendto(sockfd,&res,sizeof(int),MSG_CONFIRM,cliaddr,len);
+	if (res._res == -1)
+		res._errno= -errno;
+	sendto(sockfd,&res,sizeof(_val),MSG_CONFIRM,cliaddr,len);
 
-	if (res == -1)
-		return -errno;
 
 	return 0;
 }
@@ -431,7 +440,7 @@ static int xmp_utimens(const char *path, const struct timespec ts[2])
 //static int xmp_open(const char *path, struct fuse_file_info *fi)
 static int xmp_open(int sockfd, struct sockaddr_in *cliaddr)
 {
-	int res;
+	_val res;
 	struct fuse_file_info fi;
 	
 	char path[MAXLINE];
@@ -445,51 +454,110 @@ static int xmp_open(int sockfd, struct sockaddr_in *cliaddr)
 	
 	recvfrom(sockfd,&fi,sizeof(struct fuse_file_info),MSG_WAITALL,cliaddr,&len);
 
-	res = open(path, fi.flags);
-	sendto(sockfd,&res,sizeof(int),MSG_CONFIRM,cliaddr,len);
-	if (res == -1)
-		return -errno;
+	res._res = open(path, fi.flags);
+	if (res._res == -1)
+		res._errno = -errno;
+		sendto(sockfd,&res,sizeof(_val),MSG_CONFIRM,cliaddr,len);
+		return res._res;
 
-	close(res);
+	sendto(sockfd,&res,sizeof(_val),MSG_CONFIRM,cliaddr,len);
+
+	close(res._res);
 	return 0;
 }
 
-static int xmp_read(const char *path, char *buf, size_t size, off_t offset,
-		    struct fuse_file_info *fi)
+//static int xmp_read(const char *path, char *buf, size_t size, off_t offset,
+//		    struct fuse_file_info *fi)
+static int xmp_read(int sockfd, struct sockaddr_in *cliaddr)
 {
 	int fd;
-	int res;
+	_val res;
 
-	(void) fi;
+	//(void) fi;
+
+	char path[MAXLINE];
+	int len = sizeof(struct sockaddr_in);
+	size_t n=0;	
+	struct _args arg;	
+	char *buf;
+
+	//get path
+	n = recvfrom(sockfd,path,MAXLINE,MSG_WAITALL,cliaddr,&len);
+	path[n]='\0';	
+
+
+	recvfrom(sockfd,&arg,sizeof(struct _args),MSG_WAITALL,cliaddr,&len);
+	
+
+
 	fd = open(path, O_RDONLY);
-	if (fd == -1)
+	if (fd == -1){
+		res._res = -1;
+		res._errno= -errno;
+		sendto(sockfd,&res,sizeof(_val),MSG_CONFIRM,cliaddr,len);
 		return -errno;
-
-	res = pread(fd, buf, size, offset);
-	if (res == -1)
-		res = -errno;
-
+	}
+	buf = (char*)malloc(arg._size);	
+	res._res = pread(fd, buf, arg._size, arg._offset);
+	if (res._res == -1){
+		res._errno = -errno;
+		sendto(sockfd,&res,sizeof(_val),MSG_CONFIRM,cliaddr,len);
+		free(buf);
+		return -errno;
+	}
+	sendto(sockfd,&res,sizeof(_val),MSG_CONFIRM,cliaddr,len);
+	sendto(sockfd,buf,arg._size,MSG_CONFIRM,cliaddr,len);
+	
 	close(fd);
-	return res;
+	free(buf);
+	return res._res;
 }
 
-static int xmp_write(const char *path, const char *buf, size_t size,
-		     off_t offset, struct fuse_file_info *fi)
+//static int xmp_write(const char *path, const char *buf, size_t size,
+//		     off_t offset, struct fuse_file_info *fi)
+static int xmp_write(int sockfd, struct sockaddr_in *cliaddr)
 {
 	int fd;
-	int res;
+	_val res;
 
-	(void) fi;
+	//(void) fi;
+	
+
+	char path[MAXLINE];
+	int len = sizeof(struct sockaddr_in);
+	size_t n=0;	
+	struct _args arg;	
+
+	//get path
+	n = recvfrom(sockfd,path,MAXLINE,MSG_WAITALL,cliaddr,&len);
+	path[n]='\0';	
+
+
+	recvfrom(sockfd,&arg,sizeof(struct _args),MSG_WAITALL,cliaddr,&len);
+	arg._data = malloc(arg._size);
+	recvfrom(sockfd,arg._data,arg._size,MSG_WAITALL,cliaddr,&len);
+
+
 	fd = open(path, O_WRONLY);
-	if (fd == -1)
+
+	if (fd == -1){
+		res._res = -1;
+		res._errno = -errno;
+		sendto(sockfd,&res,sizeof(_val),MSG_CONFIRM,cliaddr,len);
 		return -errno;
+	}
 
-	res = pwrite(fd, buf, size, offset);
-	if (res == -1)
-		res = -errno;
-
+	res._res = pwrite(fd, arg._data, arg._size, arg._offset);
+	if (res._res == -1){
+		res._errno = -errno;
+		sendto(sockfd,&res,sizeof(_val),MSG_CONFIRM,cliaddr,len);
+		return -errno;
+	}
+	
+	sendto(sockfd,&res,sizeof(_val),MSG_CONFIRM,cliaddr,len);
 	close(fd);
-	return res;
+	free(arg._data);
+	return res._res;
 }
 
 static int xmp_statfs(const char *path, struct statvfs *stbuf)
@@ -636,6 +704,12 @@ int main(int argc, char *argv[])
 			break;
 			case OPEN:
 			xmp_open(sockfd,&cliaddr);
+			break;
+			case READ:
+			xmp_read(sockfd,&cliaddr);
+			break;
+			case WRITE:
+			xmp_write(sockfd,&cliaddr);
 			break;
 		}
 	}

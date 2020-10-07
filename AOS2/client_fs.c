@@ -76,14 +76,14 @@ struct net_state {
 };
 #define C_DATA ((struct net_state *) ((struct fuse_context*)fuse_get_context())->private_data)
 
-int send_through_net(const char *path,int opcode, struct _args *arg)
+_val send_through_net(const char *path,int opcode, struct _args *arg)
 {
 	int sockfd;
 	if ( (sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0 ) {
         perror("socket creation failed");
         exit(EXIT_FAILURE);
     }
-	int res;
+	_val res;
 	int len = sizeof(*C_DATA->servaddr);
 	sendto(sockfd, &opcode, sizeof(int),MSG_CONFIRM,C_DATA->servaddr, len);
 	
@@ -92,7 +92,7 @@ case GETATTR:
 	printf("GETATTR\n");
 	fflush(stdout);
 	sendto(sockfd, path, strlen(path),MSG_CONFIRM, C_DATA->servaddr, len);
-	recvfrom(sockfd,&res,sizeof(int),MSG_WAITALL, C_DATA->servaddr, &len);
+	recvfrom(sockfd,&res,sizeof(_val),MSG_WAITALL, C_DATA->servaddr, &len);
 	recvfrom(sockfd,arg->_stbuf,sizeof(*arg->_stbuf),MSG_WAITALL,C_DATA->servaddr,&len);
 	break;
 case ACCESS:
@@ -100,7 +100,7 @@ case ACCESS:
 	fflush(stdout);
 	sendto(sockfd, path, strlen(path),MSG_CONFIRM, C_DATA->servaddr, len);
 	sendto(sockfd, arg, sizeof(struct _args),MSG_CONFIRM, C_DATA->servaddr, len);
-	recvfrom(sockfd,&res,sizeof(int),MSG_WAITALL, C_DATA->servaddr, &len);
+	recvfrom(sockfd,&res,sizeof(_val),MSG_WAITALL, C_DATA->servaddr, &len);
 	break;
 case READLINK:
 	printf("READLINK\n");
@@ -108,8 +108,8 @@ case READLINK:
 	sendto(sockfd, path, strlen(path),MSG_CONFIRM, C_DATA->servaddr, len);
 	sendto(sockfd, &arg->_size,sizeof(size_t),MSG_CONFIRM, C_DATA->servaddr, len);
 	sendto(sockfd, arg->_buf, arg->_size ,MSG_CONFIRM, C_DATA->servaddr, len);
-	recvfrom(sockfd,&res,sizeof(int),MSG_WAITALL, C_DATA->servaddr, &len);
-	if(res >=0){ 
+	recvfrom(sockfd,&res,sizeof(_val),MSG_WAITALL, C_DATA->servaddr, &len);
+	if(res._res >=0){ 
 		recvfrom(sockfd,arg->_buf,arg->_size,MSG_WAITALL, C_DATA->servaddr, &len);
 	}
 	break;
@@ -117,8 +117,8 @@ case READDIR:
 	printf("READDIRi\n");
 	fflush(stdout);
 	sendto(sockfd, path, strlen(path),MSG_CONFIRM, C_DATA->servaddr, len);
-	recvfrom(sockfd,&res,sizeof(int),MSG_WAITALL, C_DATA->servaddr, &len);
-	if(res >= 0){
+	recvfrom(sockfd,&res,sizeof(_val),MSG_WAITALL, C_DATA->servaddr, &len);
+	if(res._res >= 0){
 		recvfrom(sockfd,&arg->_size,sizeof(size_t),MSG_WAITALL, C_DATA->servaddr, &len);
 		arg->_data = malloc(sizeof(struct dirent)*arg->_size);
 		recvfrom(sockfd,arg->_data,sizeof(struct dirent)*arg->_size,MSG_WAITALL, C_DATA->servaddr, &len);
@@ -129,48 +129,67 @@ case MKDIR:
 	fflush(stdout);
 	sendto(sockfd, path, strlen(path),MSG_CONFIRM, C_DATA->servaddr, len);
 	sendto(sockfd, &arg->_mode,sizeof(mode_t),MSG_CONFIRM, C_DATA->servaddr,len);
-	recvfrom(sockfd,&res,sizeof(int),MSG_WAITALL, C_DATA->servaddr, &len);
+	recvfrom(sockfd,&res,sizeof(_val),MSG_WAITALL, C_DATA->servaddr, &len);
 	break;
 case UNLINK:
 	printf("UNLINK\n");
 	fflush(stdout);
 	sendto(sockfd, path, strlen(path),MSG_CONFIRM, C_DATA->servaddr, len);
-	recvfrom(sockfd,&res,sizeof(int),MSG_WAITALL, C_DATA->servaddr, &len);
+	recvfrom(sockfd,&res,sizeof(_val),MSG_WAITALL, C_DATA->servaddr, &len);
 	break;
 case RMDIR:
 	printf("RMDIR\n");
 	fflush(stdout);
 	sendto(sockfd, path, strlen(path),MSG_CONFIRM, C_DATA->servaddr, len);
-	recvfrom(sockfd,&res,sizeof(int),MSG_WAITALL, C_DATA->servaddr, &len);
+	recvfrom(sockfd,&res,sizeof(_val),MSG_WAITALL, C_DATA->servaddr, &len);
 	break;
 case SYMLINK:
 	printf("SYMLINK\n");
 	fflush(stdout);
 	sendto(sockfd, path, strlen(path),MSG_CONFIRM, C_DATA->servaddr, len);
-	recvfrom(sockfd,&res,sizeof(int),MSG_WAITALL, C_DATA->servaddr, &len);
+	recvfrom(sockfd,&res,sizeof(_val),MSG_WAITALL, C_DATA->servaddr, &len);
 	break;	
 case RENAME:
 	printf("RENAME\n");
 	fflush(stdout);
 	sendto(sockfd, path, strlen(path),MSG_CONFIRM, C_DATA->servaddr, len);
-	recvfrom(sockfd,&res,sizeof(int),MSG_WAITALL, C_DATA->servaddr, &len);
+	recvfrom(sockfd,&res,sizeof(_val),MSG_WAITALL, C_DATA->servaddr, &len);
 	break;	
 case LINK:
 	printf("LINK\n");
 	fflush(stdout);
 	sendto(sockfd, path, strlen(path),MSG_CONFIRM, C_DATA->servaddr, len);
-	recvfrom(sockfd,&res,sizeof(int),MSG_WAITALL, C_DATA->servaddr, &len);
+	recvfrom(sockfd,&res,sizeof(_val),MSG_WAITALL, C_DATA->servaddr, &len);
 	break;
 case OPEN:
 	printf("OPEN\n");
 	fflush(stdout);
 	sendto(sockfd, path, strlen(path),MSG_CONFIRM, C_DATA->servaddr, len);
 	sendto(sockfd, arg->_fi, sizeof(struct fuse_file_info) ,MSG_CONFIRM, C_DATA->servaddr, len);
-	recvfrom(sockfd,&res,sizeof(int),MSG_WAITALL, C_DATA->servaddr, &len);
+	recvfrom(sockfd,&res,sizeof(_val),MSG_WAITALL, C_DATA->servaddr, &len);
 	break;
-	
-	
-	
+case READ:
+	printf("READ\n");
+	fflush(stdout);
+	sendto(sockfd, path, strlen(path),MSG_CONFIRM, C_DATA->servaddr, len);
+	sendto(sockfd, arg, sizeof(struct _args),MSG_CONFIRM, C_DATA->servaddr, len);
+	recvfrom(sockfd,&res,sizeof(_val),MSG_WAITALL, C_DATA->servaddr, &len);
+	if(res._res >= 0){
+		arg->_data = malloc(arg->_size);
+		recvfrom(sockfd,arg->_data,arg->_size,MSG_WAITALL, C_DATA->servaddr, &len);
+	}
+	break;
+case WRITE:
+	printf("WRITE\n");
+	fflush(stdout);
+
+	sendto(sockfd, path, strlen(path),MSG_CONFIRM, C_DATA->servaddr, len);
+	sendto(sockfd, arg, sizeof(struct _args),MSG_CONFIRM, C_DATA->servaddr, len);
+	sendto(sockfd, arg->_data, arg->_size,MSG_CONFIRM, C_DATA->servaddr, len);
+	recvfrom(sockfd,&res,sizeof(_val),MSG_WAITALL, C_DATA->servaddr, &len);
+	break;
+
+
 	}
 	close(sockfd);
 	return res;
@@ -179,14 +198,14 @@ case OPEN:
 //DONE
 static int xmp_getattr(const char *path, struct stat *stbuf)
 {
-	int res;
+	_val res;
 	struct _args arg;
 	arg._stbuf = stbuf;
 	res = send_through_net(path,GETATTR,&arg);
 
-	res = lstat(path, stbuf);
-	if (res == -1)
-		return -errno;
+	//res = lstat(path, stbuf);
+	if (res._res == -1)
+		return res._errno;
 
 	return 0;
 }
@@ -194,13 +213,13 @@ static int xmp_getattr(const char *path, struct stat *stbuf)
 //DONE
 static int xmp_access(const char *path, int mask)
 {
-	int res;
+	_val res;
 	struct _args arg;
 	arg._mask = mask;
 	res = send_through_net(path,ACCESS,&arg);
 	//res = access(path, mask);
-	if (res == -1)
-		return -errno;
+	if (res._res == -1)
+		return res._errno;
 
 	return 0;
 }
@@ -208,16 +227,16 @@ static int xmp_access(const char *path, int mask)
 //DONE
 static int xmp_readlink(const char *path, char *buf, size_t size)
 {
-	int res;
+	_val res;
 	struct _args arg;
 	arg._buf = (void*)buf;
 	arg._size = size;
 	res = send_through_net(path,READLINK,&arg);
 	//res = readlink(path, buf, size - 1);
-	if (res == -1)
-		return -errno;
+	if (res._res == -1)
+		return res._errno;
 
-	buf[res] = '\0';
+	buf[res._res] = '\0';
 	return 0;
 }
 
@@ -235,13 +254,15 @@ static int xmp_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 	
 	arg._buf = buf;
 
-	int res = send_through_net(path,READDIR,&arg);
-	if (res >=0){
+	_val res = send_through_net(path,READDIR,&arg);
+	if (res._res >=0){
 		for (int i=0;i<arg._size;i++){
 			if(filler(buf,((struct dirent*)arg._data)[i].d_name,NULL,0) != 0){
+				free(arg._data);
 				return -1;
 			}
 		}
+		free(arg._data);
 	}
 	/*
 	dp = opendir(path);
@@ -285,13 +306,13 @@ static int xmp_mknod(const char *path, mode_t mode, dev_t rdev)
 //DONE
 static int xmp_mkdir(const char *path, mode_t mode)
 {
-	int res;
+	_val res;
 	struct _args arg;
 	arg._mode = mode;
 	res = send_through_net(path,MKDIR,&arg);
 	//res = mkdir(path, mode);
-	if (res == -1)
-		return -errno;
+	if (res._res == -1)
+		return res._errno;
 
 	return 0;
 }
@@ -299,13 +320,13 @@ static int xmp_mkdir(const char *path, mode_t mode)
 //DONE
 static int xmp_unlink(const char *path)
 {
-	int res;
+	_val res;
 	struct _args arg;
 
 	res = send_through_net(path,UNLINK,&arg);
 	//res = unlink(path);
-	if (res == -1)
-		return -errno;
+	if (res._res == -1)
+		return res._errno;
 
 	return 0;
 }
@@ -313,12 +334,12 @@ static int xmp_unlink(const char *path)
 //DONE
 static int xmp_rmdir(const char *path)
 {
-	int res;
+	_val res;
 	struct _args arg;
 	res = send_through_net(path,RMDIR,&arg);
 	//res = rmdir(path);
-	if (res == -1)
-		return -errno;
+	if (res._res == -1)
+		return res._errno;
 
 	return 0;
 }
@@ -326,7 +347,7 @@ static int xmp_rmdir(const char *path)
 //DONE
 static int xmp_symlink(const char *to, const char *from)
 {
-	int res;
+	_val res;
 	char catstr[2*MAXLINE];
 	strcpy(catstr,from);
 	strcat(catstr,"\27");//27 is DEL, not available in usual file system. So, Magic number.
@@ -336,8 +357,8 @@ static int xmp_symlink(const char *to, const char *from)
 
 	
 	//res = symlink(to, from);
-	if (res == -1)
-		return -errno;
+	if (res._res == -1)
+		return res._errno;
 
 	return 0;
 }
@@ -345,7 +366,7 @@ static int xmp_symlink(const char *to, const char *from)
 //DONE
 static int xmp_rename(const char *from, const char *to)
 {
-	int res;
+	_val res;
 	char catstr[2*MAXLINE];
 	strcpy(catstr,from);
 	strcat(catstr,"\27");//27 is DEL, not available in usual file system. So, Magic number.
@@ -354,15 +375,15 @@ static int xmp_rename(const char *from, const char *to)
 	res = send_through_net(catstr,RENAME,NULL);
 
 	//res = rename(from, to);
-	if (res == -1)
-		return -errno;
+	if (res._res == -1)
+		return res._errno;
 
 	return 0;
 }
 
 static int xmp_link(const char *from, const char *to)
 {
-	int res;
+	_val res;
 	char catstr[2*MAXLINE];
 	strcpy(catstr,from);
 	strcat(catstr,"\27");//27 is DEL, not available in usual file system. So, Magic number.
@@ -371,8 +392,8 @@ static int xmp_link(const char *from, const char *to)
 	res = send_through_net(catstr,LINK,NULL);
 
 	//res = link(from, to);
-	if (res == -1)
-		return -errno;
+	if (res._res == -1)
+		return res._errno;
 
 	return 0;
 }
@@ -429,15 +450,15 @@ static int xmp_utimens(const char *path, const struct timespec ts[2])
 
 static int xmp_open(const char *path, struct fuse_file_info *fi)
 {
-	int res;
+	_val res;
 	struct _args arg;
 	arg._fi = fi;
 	res = send_through_net(path,OPEN,&arg);
 	//res = open(path, fi->flags);
-	if (res == -1)
-		return -errno;
+	if (res._res == -1)
+		return res._errno;
 
-	close(res);
+	close(res._res);
 	return 0;
 }
 
@@ -445,28 +466,50 @@ static int xmp_read(const char *path, char *buf, size_t size, off_t offset,
 		    struct fuse_file_info *fi)
 {
 	int fd;
-	int res;
+	_val res;
 
 	(void) fi;
-	fd = open(path, O_RDONLY);
-	if (fd == -1)
-		return -errno;
+	struct _args arg;
+	arg._size = size;
+	arg._offset = offset;
+	res = send_through_net(path,READ,&arg);
+	if (res._res>=0){
+		memcpy(buf,arg._data,arg._size);
+		free(arg._data);
+	}else{
+		return res._errno;
+	}
+	return res._res;
+	//fd = open(path, O_RDONLY);
+	//if (fd == -1)
+	//	return -errno;
+	//
+	//res = pread(fd, buf, size, offset);
+	//if (res == -1)
+	//	res = -errno;
 
-	res = pread(fd, buf, size, offset);
-	if (res == -1)
-		res = -errno;
-
-	close(fd);
-	return res;
+	//close(fd);
+	//return res;
 }
 
 static int xmp_write(const char *path, const char *buf, size_t size,
 		     off_t offset, struct fuse_file_info *fi)
 {
 	int fd;
-	int res;
+	_val res;
 
 	(void) fi;
+	
+	struct _args arg;
+	arg._size = size;
+	arg._offset = offset;
+	arg._data = buf;
+	res = send_through_net(path,WRITE,&arg);
+	if(res._res==-1)
+		return res._errno;
+	return res._res;
+	
+	/*
 	fd = open(path, O_WRONLY);
 	if (fd == -1)
 		return -errno;
@@ -477,6 +520,7 @@ static int xmp_write(const char *path, const char *buf, size_t size,
 
 	close(fd);
 	return res;
+	*/
 }
 
 static int xmp_statfs(const char *path, struct statvfs *stbuf)

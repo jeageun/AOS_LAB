@@ -11,7 +11,11 @@ struct _args {
     void *_data;
     mode_t _mode;
 	struct fuse_file_info *_fi;
+	off_t _offset;
 };
 
-
+typedef struct _val {
+	int _res;
+	int _errno
+}_val;
 #endif
