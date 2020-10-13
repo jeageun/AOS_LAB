@@ -1,0 +1,221 @@
+Script started on 2020-10-02 10:40:37-0500
+geun@geun-ThinkPad-X1-Carbon-3rd:~/AOS/AOS_LAB/AOS2$ strace 
+strace: must have PROG [ARGS] or -p PID
+Try 'strace -h' for more information.
+geun@geun-ThinkPad-X1-Carbon-3rd:~/AOS/AOS_LAB/AOS2$ strace [K[K[K[K[K[K[Kls
+client.c  fusexmp.c  [0m[01;34mroot[0m      sessonrecord  [01;32mtest_c.o[0m
+[01;32mfusexmp[0m   network.c  server.c  [01;34mtest[0m          [01;32mtest_s.o[0m
+geun@geun-ThinkPad-X1-Carbon-3rd:~/AOS/AOS_LAB/AOS2$ cd test/
+geun@geun-ThinkPad-X1-Carbon-3rd:~/AOS/AOS_LAB/AOS2/test$ ls
+geun@geun-ThinkPad-X1-Carbon-3rd:~/AOS/AOS_LAB/AOS2/test$ cd ..
+geun@geun-ThinkPad-X1-Carbon-3rd:~/AOS/AOS_LAB/AOS2$ ls
+client.c  fusexmp.c  [0m[01;34mroot[0m      sessonrecord  [01;32mtest_c.o[0m
+[01;32mfusexmp[0m   network.c  server.c  [01;34mtest[0m          [01;32mtest_s.o[0m
+geun@geun-ThinkPad-X1-Carbon-3rd:~/AOS/AOS_LAB/AOS2$ strace fuser[K[Ker[Kex[K[Kxmp roo[K[K[Ktest
+strace: Can't stat 'fusexmp': No such file or directory
+geun@geun-ThinkPad-X1-Carbon-3rd:~/AOS/AOS_LAB/AOS2$ strace fusexmp test[2@./
+execve("./fusexmp", ["./fusexmp", "test"], 0x7ffc428f9df8 /* 40 vars */) = 0
+brk(NULL)                               = 0x557d9b9a7000
+access("/etc/ld.so.nohwcap", F_OK)      = -1 ENOENT (No such file or directory)
+access("/etc/ld.so.preload", R_OK)      = -1 ENOENT (No such file or directory)
+openat(AT_FDCWD, "/etc/ld.so.cache", O_RDONLY|O_CLOEXEC) = 3
+fstat(3, {st_mode=S_IFREG|0644, st_size=140120, ...}) = 0
+mmap(NULL, 140120, PROT_READ, MAP_PRIVATE, 3, 0) = 0x7fa20599c000
+close(3)                                = 0
+access("/etc/ld.so.nohwcap", F_OK)      = -1 ENOENT (No such file or directory)
+openat(AT_FDCWD, "/lib/x86_64-linux-gnu/libfuse.so.2", O_RDONLY|O_CLOEXEC) = 3
+read(3, "\177ELF\2\1\1\0\0\0\0\0\0\0\0\0\3\0>\0\1\0\0\0\360o\0\0\0\0\0\0"..., 832) = 832
+fstat(3, {st_mode=S_IFREG|0644, st_size=243832, ...}) = 0
+mmap(NULL, 8192, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fa20599a000
+mmap(NULL, 2339104, PROT_READ|PROT_EXEC, MAP_PRIVATE|MAP_DENYWRITE, 3, 0) = 0x7fa20555c000
+mprotect(0x7fa205586000, 2093056, PROT_NONE) = 0
+mmap(0x7fa205785000, 77824, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 3, 0x29000) = 0x7fa205785000
+close(3)                                = 0
+access("/etc/ld.so.nohwcap", F_OK)      = -1 ENOENT (No such file or directory)
+openat(AT_FDCWD, "/lib/x86_64-linux-gnu/libpthread.so.0", O_RDONLY|O_CLOEXEC) = 3
+read(3, "\177ELF\2\1\1\0\0\0\0\0\0\0\0\0\3\0>\0\1\0\0\0000b\0\0\0\0\0\0"..., 832) = 832
+fstat(3, {st_mode=S_IFREG|0755, st_size=144976, ...}) = 0
+mmap(NULL, 2221184, PROT_READ|PROT_EXEC, MAP_PRIVATE|MAP_DENYWRITE, 3, 0) = 0x7fa20533d000
+mprotect(0x7fa205357000, 2093056, PROT_NONE) = 0
+mmap(0x7fa205556000, 8192, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 3, 0x19000) = 0x7fa205556000
+mmap(0x7fa205558000, 13440, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS, -1, 0) = 0x7fa205558000
+close(3)                                = 0
+access("/etc/ld.so.nohwcap", F_OK)      = -1 ENOENT (No such file or directory)
+openat(AT_FDCWD, "/lib/x86_64-linux-gnu/libc.so.6", O_RDONLY|O_CLOEXEC) = 3
+read(3, "\177ELF\2\1\1\3\0\0\0\0\0\0\0\0\3\0>\0\1\0\0\0\260\34\2\0\0\0\0\0"..., 832) = 832
+fstat(3, {st_mode=S_IFREG|0755, st_size=2030544, ...}) = 0
+mmap(NULL, 4131552, PROT_READ|PROT_EXEC, MAP_PRIVATE|MAP_DENYWRITE, 3, 0) = 0x7fa204f4c000
+mprotect(0x7fa205133000, 2097152, PROT_NONE) = 0
+mmap(0x7fa205333000, 24576, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 3, 0x1e7000) = 0x7fa205333000
+mmap(0x7fa205339000, 15072, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS, -1, 0) = 0x7fa205339000
+close(3)                                = 0
+access("/etc/ld.so.nohwcap", F_OK)      = -1 ENOENT (No such file or directory)
+openat(AT_FDCWD, "/lib/x86_64-linux-gnu/libdl.so.2", O_RDONLY|O_CLOEXEC) = 3
+read(3, "\177ELF\2\1\1\0\0\0\0\0\0\0\0\0\3\0>\0\1\0\0\0P\16\0\0\0\0\0\0"..., 832) = 832
+fstat(3, {st_mode=S_IFREG|0644, st_size=14560, ...}) = 0
+mmap(NULL, 2109712, PROT_READ|PROT_EXEC, MAP_PRIVATE|MAP_DENYWRITE, 3, 0) = 0x7fa204d48000
+mprotect(0x7fa204d4b000, 2093056, PROT_NONE) = 0
+mmap(0x7fa204f4a000, 8192, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 3, 0x2000) = 0x7fa204f4a000
+close(3)                                = 0
+mmap(NULL, 8192, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fa205998000
+arch_prctl(ARCH_SET_FS, 0x7fa205998b80) = 0
+mprotect(0x7fa205333000, 16384, PROT_READ) = 0
+mprotect(0x7fa204f4a000, 4096, PROT_READ) = 0
+mprotect(0x7fa205556000, 4096, PROT_READ) = 0
+mprotect(0x7fa205785000, 73728, PROT_READ) = 0
+mprotect(0x557d9b6f5000, 4096, PROT_READ) = 0
+mprotect(0x7fa2059bf000, 4096, PROT_READ) = 0
+munmap(0x7fa20599c000, 140120)          = 0
+set_tid_address(0x7fa205998e50)         = 19440
+set_robust_list(0x7fa205998e60, 24)     = 0
+rt_sigaction(SIGRTMIN, {sa_handler=0x7fa205342cb0, sa_mask=[], sa_flags=SA_RESTORER|SA_SIGINFO, sa_restorer=0x7fa20534f8a0}, NULL, 8) = 0
+rt_sigaction(SIGRT_1, {sa_handler=0x7fa205342d50, sa_mask=[], sa_flags=SA_RESTORER|SA_RESTART|SA_SIGINFO, sa_restorer=0x7fa20534f8a0}, NULL, 8) = 0
+rt_sigprocmask(SIG_UNBLOCK, [RTMIN RT_1], NULL, 8) = 0
+prlimit64(0, RLIMIT_STACK, NULL, {rlim_cur=8192*1024, rlim_max=RLIM64_INFINITY}) = 0
+umask(000)                              = 002
+brk(NULL)                               = 0x557d9b9a7000
+brk(0x557d9b9c8000)                     = 0x557d9b9c8000
+getcwd("/home/geun/AOS/AOS_LAB/AOS2", 4096) = 28
+lstat("/home/geun/AOS/AOS_LAB/AOS2/test", {st_mode=S_IFDIR|0775, st_size=4096, ...}) = 0
+openat(AT_FDCWD, "/dev/null", O_RDWR)   = 3
+close(3)                                = 0
+stat("/home/geun/AOS/AOS_LAB/AOS2/test", {st_mode=S_IFDIR|0775, st_size=4096, ...}) = 0
+openat(AT_FDCWD, "/home/geun/AOS/AOS_LAB/AOS2/test", O_RDONLY|O_NONBLOCK|O_CLOEXEC|O_DIRECTORY) = 3
+fstat(3, {st_mode=S_IFDIR|0775, st_size=4096, ...}) = 0
+getdents(3, /* 2 entries */, 32768)     = 48
+getdents(3, /* 0 entries */, 32768)     = 0
+close(3)                                = 0
+openat(AT_FDCWD, "/dev/fuse", O_RDWR)   = 3
+getgid()                                = 1000
+getuid()                                = 1000
+mount("fusexmp", "/home/geun/AOS/AOS_LAB/AOS2/test", "fuse.fusexmp", MS_NOSUID|MS_NODEV, "fd=3,rootmode=40000,user_id=1000"...) = -1 EPERM (Operation not permitted)
+close(3)                                = 0
+socketpair(AF_UNIX, SOCK_STREAM, 0, [3, 4]) = 0
+clone(child_stack=NULL, flags=CLONE_CHILD_CLEARTID|CLONE_CHILD_SETTID|SIGCHLD, child_tidptr=0x7fa205998e50) = 19441
+close(3)                                = 0
+recvmsg(4, {msg_namelen=0}, 0)          = ? ERESTARTSYS (To be restarted if SA_RESTART is set)
+--- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=19441, si_uid=1000, si_status=0, si_utime=0, si_stime=0} ---
+recvmsg(4, {msg_name=NULL, msg_namelen=0, msg_iov=[{iov_base="\0", iov_len=1}], msg_iovlen=1, msg_control=[{cmsg_len=20, cmsg_level=SOL_SOCKET, cmsg_type=SCM_RIGHTS, cmsg_data=[3]}], msg_controllen=24, msg_flags=0}, 0) = 1
+close(4)                                = 0
+wait4(19441, NULL, 0, NULL)             = 19441
+getuid()                                = 1000
+mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fa2059be000
+pipe([4, 5])                            = 0
+clone(child_stack=NULL, flags=CLONE_CHILD_CLEARTID|CLONE_CHILD_SETTID|SIGCHLD, child_tidptr=0x7fa205998e50) = 19443
+read(4, "\1", 1)                        = 1
+exit_group(0)                           = ?
++++ exited with 0 +++
+geun@geun-ThinkPad-X1-Carbon-3rd:~/AOS/AOS_LAB/AOS2$ strace [K
+strace            strace-log-merge  
+geun@geun-ThinkPad-X1-Carbon-3rd:~/AOS/AOS_LAB/AOS2$ strace cd test
+strace: Can't stat 'cd': No such file or directory
+geun@geun-ThinkPad-X1-Carbon-3rd:~/AOS/AOS_LAB/AOS2$ cd test
+geun@geun-ThinkPad-X1-Carbon-3rd:~/AOS/AOS_LAB/AOS2/test$ ls
+[0m[01;34mbin[0m    [01;34mdev[0m   [01;36minitrd.img[0m      [01;34mlib32[0m       [01;34mmedia[0m  [01;34mproc[0m  [01;34msbin[0m  [01;34msys[0m  [01;34mvar[0m
+[01;34mboot[0m   [01;34metc[0m   [01;36minitrd.img.old[0m  [01;34mlib64[0m       [01;34mmnt[0m    [01;34mroot[0m  [01;34msnap[0m  [30;42mtmp[0m  [01;36mvmlinuz[0m
+[01;34mcdrom[0m  [01;34mhome[0m  [01;34mlib[0m             [01;34mlost+found[0m  [01;34mopt[0m    [01;34mrun[0m   [01;34msrv[0m   [01;34musr[0m  [01;36mvmlinuz.old[0m
+geun@geun-ThinkPad-X1-Carbon-3rd:~/AOS/AOS_LAB/AOS2/test$ strace ls
+execve("/bin/ls", ["ls"], 0x7fffce9185c0 /* 40 vars */) = 0
+brk(NULL)                               = 0x5586a124b000
+access("/etc/ld.so.nohwcap", F_OK)      = -1 ENOENT (No such file or directory)
+access("/etc/ld.so.preload", R_OK)      = -1 ENOENT (No such file or directory)
+openat(AT_FDCWD, "/etc/ld.so.cache", O_RDONLY|O_CLOEXEC) = 3
+fstat(3, {st_mode=S_IFREG|0644, st_size=140120, ...}) = 0
+mmap(NULL, 140120, PROT_READ, MAP_PRIVATE, 3, 0) = 0x7fdbd9119000
+close(3)                                = 0
+access("/etc/ld.so.nohwcap", F_OK)      = -1 ENOENT (No such file or directory)
+openat(AT_FDCWD, "/lib/x86_64-linux-gnu/libselinux.so.1", O_RDONLY|O_CLOEXEC) = 3
+read(3, "\177ELF\2\1\1\0\0\0\0\0\0\0\0\0\3\0>\0\1\0\0\0\20b\0\0\0\0\0\0"..., 832) = 832
+fstat(3, {st_mode=S_IFREG|0644, st_size=154832, ...}) = 0
+mmap(NULL, 8192, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fdbd9117000
+mmap(NULL, 2259152, PROT_READ|PROT_EXEC, MAP_PRIVATE|MAP_DENYWRITE, 3, 0) = 0x7fdbd8ced000
+mprotect(0x7fdbd8d12000, 2093056, PROT_NONE) = 0
+mmap(0x7fdbd8f11000, 8192, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 3, 0x24000) = 0x7fdbd8f11000
+mmap(0x7fdbd8f13000, 6352, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS, -1, 0) = 0x7fdbd8f13000
+close(3)                                = 0
+access("/etc/ld.so.nohwcap", F_OK)      = -1 ENOENT (No such file or directory)
+openat(AT_FDCWD, "/lib/x86_64-linux-gnu/libc.so.6", O_RDONLY|O_CLOEXEC) = 3
+read(3, "\177ELF\2\1\1\3\0\0\0\0\0\0\0\0\3\0>\0\1\0\0\0\260\34\2\0\0\0\0\0"..., 832) = 832
+fstat(3, {st_mode=S_IFREG|0755, st_size=2030544, ...}) = 0
+mmap(NULL, 4131552, PROT_READ|PROT_EXEC, MAP_PRIVATE|MAP_DENYWRITE, 3, 0) = 0x7fdbd88fc000
+mprotect(0x7fdbd8ae3000, 2097152, PROT_NONE) = 0
+mmap(0x7fdbd8ce3000, 24576, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 3, 0x1e7000) = 0x7fdbd8ce3000
+mmap(0x7fdbd8ce9000, 15072, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS, -1, 0) = 0x7fdbd8ce9000
+close(3)                                = 0
+access("/etc/ld.so.nohwcap", F_OK)      = -1 ENOENT (No such file or directory)
+openat(AT_FDCWD, "/lib/x86_64-linux-gnu/libpcre.so.3", O_RDONLY|O_CLOEXEC) = 3
+read(3, "\177ELF\2\1\1\0\0\0\0\0\0\0\0\0\3\0>\0\1\0\0\0 \25\0\0\0\0\0\0"..., 832) = 832
+fstat(3, {st_mode=S_IFREG|0644, st_size=464824, ...}) = 0
+mmap(NULL, 2560264, PROT_READ|PROT_EXEC, MAP_PRIVATE|MAP_DENYWRITE, 3, 0) = 0x7fdbd868a000
+mprotect(0x7fdbd86fa000, 2097152, PROT_NONE) = 0
+mmap(0x7fdbd88fa000, 8192, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 3, 0x70000) = 0x7fdbd88fa000
+close(3)                                = 0
+access("/etc/ld.so.nohwcap", F_OK)      = -1 ENOENT (No such file or directory)
+openat(AT_FDCWD, "/lib/x86_64-linux-gnu/libdl.so.2", O_RDONLY|O_CLOEXEC) = 3
+read(3, "\177ELF\2\1\1\0\0\0\0\0\0\0\0\0\3\0>\0\1\0\0\0P\16\0\0\0\0\0\0"..., 832) = 832
+fstat(3, {st_mode=S_IFREG|0644, st_size=14560, ...}) = 0
+mmap(NULL, 2109712, PROT_READ|PROT_EXEC, MAP_PRIVATE|MAP_DENYWRITE, 3, 0) = 0x7fdbd8486000
+mprotect(0x7fdbd8489000, 2093056, PROT_NONE) = 0
+mmap(0x7fdbd8688000, 8192, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 3, 0x2000) = 0x7fdbd8688000
+close(3)                                = 0
+access("/etc/ld.so.nohwcap", F_OK)      = -1 ENOENT (No such file or directory)
+openat(AT_FDCWD, "/lib/x86_64-linux-gnu/libpthread.so.0", O_RDONLY|O_CLOEXEC) = 3
+read(3, "\177ELF\2\1\1\0\0\0\0\0\0\0\0\0\3\0>\0\1\0\0\0000b\0\0\0\0\0\0"..., 832) = 832
+fstat(3, {st_mode=S_IFREG|0755, st_size=144976, ...}) = 0
+mmap(NULL, 2221184, PROT_READ|PROT_EXEC, MAP_PRIVATE|MAP_DENYWRITE, 3, 0) = 0x7fdbd8267000
+mprotect(0x7fdbd8281000, 2093056, PROT_NONE) = 0
+mmap(0x7fdbd8480000, 8192, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 3, 0x19000) = 0x7fdbd8480000
+mmap(0x7fdbd8482000, 13440, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS, -1, 0) = 0x7fdbd8482000
+close(3)                                = 0
+mmap(NULL, 8192, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fdbd9115000
+arch_prctl(ARCH_SET_FS, 0x7fdbd9116040) = 0
+mprotect(0x7fdbd8ce3000, 16384, PROT_READ) = 0
+mprotect(0x7fdbd8480000, 4096, PROT_READ) = 0
+mprotect(0x7fdbd8688000, 4096, PROT_READ) = 0
+mprotect(0x7fdbd88fa000, 4096, PROT_READ) = 0
+mprotect(0x7fdbd8f11000, 4096, PROT_READ) = 0
+mprotect(0x5586a10c1000, 8192, PROT_READ) = 0
+mprotect(0x7fdbd913c000, 4096, PROT_READ) = 0
+munmap(0x7fdbd9119000, 140120)          = 0
+set_tid_address(0x7fdbd9116310)         = 19451
+set_robust_list(0x7fdbd9116320, 24)     = 0
+rt_sigaction(SIGRTMIN, {sa_handler=0x7fdbd826ccb0, sa_mask=[], sa_flags=SA_RESTORER|SA_SIGINFO, sa_restorer=0x7fdbd82798a0}, NULL, 8) = 0
+rt_sigaction(SIGRT_1, {sa_handler=0x7fdbd826cd50, sa_mask=[], sa_flags=SA_RESTORER|SA_RESTART|SA_SIGINFO, sa_restorer=0x7fdbd82798a0}, NULL, 8) = 0
+rt_sigprocmask(SIG_UNBLOCK, [RTMIN RT_1], NULL, 8) = 0
+prlimit64(0, RLIMIT_STACK, NULL, {rlim_cur=8192*1024, rlim_max=RLIM64_INFINITY}) = 0
+statfs("/sys/fs/selinux", 0x7ffd54525540) = -1 ENOENT (No such file or directory)
+statfs("/selinux", 0x7ffd54525540)      = -1 ENOENT (No such file or directory)
+brk(NULL)                               = 0x5586a124b000
+brk(0x5586a126c000)                     = 0x5586a126c000
+openat(AT_FDCWD, "/proc/filesystems", O_RDONLY|O_CLOEXEC) = 3
+fstat(3, {st_mode=S_IFREG|0444, st_size=0, ...}) = 0
+read(3, "nodev\tsysfs\nnodev\trootfs\nnodev\tr"..., 1024) = 463
+read(3, "", 1024)                       = 0
+close(3)                                = 0
+access("/etc/selinux/config", F_OK)     = -1 ENOENT (No such file or directory)
+openat(AT_FDCWD, "/usr/lib/locale/locale-archive", O_RDONLY|O_CLOEXEC) = 3
+fstat(3, {st_mode=S_IFREG|0644, st_size=4326016, ...}) = 0
+mmap(NULL, 4326016, PROT_READ, MAP_PRIVATE, 3, 0) = 0x7fdbd7e46000
+close(3)                                = 0
+ioctl(1, TCGETS, {B38400 opost isig icanon echo ...}) = 0
+ioctl(1, TIOCGWINSZ, {ws_row=23, ws_col=80, ws_xpixel=0, ws_ypixel=0}) = 0
+openat(AT_FDCWD, ".", O_RDONLY|O_NONBLOCK|O_CLOEXEC|O_DIRECTORY) = 3
+fstat(3, {st_mode=S_IFDIR|0755, st_size=4096, ...}) = 0
+getdents(3, /* 29 entries */, 32768)    = 776
+getdents(3, /* 0 entries */, 32768)     = 0
+close(3)                                = 0
+fstat(1, {st_mode=S_IFCHR|0620, st_rdev=makedev(136, 20), ...}) = 0
+write(1, "bin    dev   initrd.img      lib"..., 63bin    dev   initrd.img      lib32	 media	proc  sbin  sys  var
+) = 63
+write(1, "boot   etc   initrd.img.old  lib"..., 65boot   etc   initrd.img.old  lib64	 mnt	root  snap  tmp  vmlinuz
+) = 65
+write(1, "cdrom  home  lib\t     lost+found"..., 67cdrom  home  lib	     lost+found  opt	run   srv   usr  vmlinuz.old
+) = 67
+close(1)                                = 0
+close(2)                                = 0
+exit_group(0)                           = ?
++++ exited with 0 +++
+geun@geun-ThinkPad-X1-Carbon-3rd:~/AOS/AOS_LAB/AOS2/test$ exit
+exit
+
+Script done on 2020-10-02 10:41:35-0500
