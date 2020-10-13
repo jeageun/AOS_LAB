@@ -2,3 +2,5 @@ AOS1 is for AOS lab1.
 perf_measure.sh launch all executions to get data. See output.txt after execution.
 open_read_perf.c is used on perf_measurement.
 open_read_mmap.c is for the first few experiments.
+
+AOS2 is for AOS lab2, which is Filesystem.
