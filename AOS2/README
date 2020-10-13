@@ -1,0 +1,17 @@
+For build filesystem
+make all
+
+Only for client
+make client
+
+Only for server
+make server
+
+When you want to set your server
+./server_fs [PATH]
+example : ./server_fs /home/share/nfs
+It sets 18089 PORT for UDP connection
+
+When you want to set your client
+./client_fs [FUSE OPTIONS] [Mount point] [Username on server] [Server IP] [PORT]
+./client_fs -s -d myscp geun 192.168.0.160 18089

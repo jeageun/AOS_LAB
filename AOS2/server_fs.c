@@ -761,7 +761,7 @@ int main(int argc, char *argv[])
 	servaddr.sin_family = AF_INET; // IPv4
 	servaddr.sin_addr.s_addr = INADDR_ANY;
 	servaddr.sin_port = htons(PORT);
-	
+    strcpy(ROOTPATH,"/");	
 	if(argc > 1)
 		strcpy(ROOTPATH,argv[1]);
 	
