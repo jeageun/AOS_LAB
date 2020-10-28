@@ -1,3 +1,4 @@
+extern printf
 section .data
     hello_world db "Hello world!", 10
     hello_world_len  equ $ - hello_world
@@ -8,9 +9,7 @@ section .text
         mov rdi, 1
         mov rsi, hello_world
         mov rdx, hello_world_len
-        syscall
+        call printf
         mov rax, 60
         mov rdi, 0
         syscall
-
-
