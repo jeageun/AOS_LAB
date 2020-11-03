@@ -4,6 +4,8 @@
 #include <sys/mman.h>
 #include <asm/auxvec.h>
 #include <fcntl.h>
+#include <signal.h>
+#include <ucontext.h>
 
 #define SIZE 1048576*128
 #define PATH_MAX 1024
@@ -13,6 +15,7 @@ Elf64_Phdr *phdr;
 char *mem;
 char *filePath;
 char *atphdr;
+int fd;
 
 #define AT_NULL   0 /* end of vector */
 #define AT_IGNORE 1 /* entry should be ignored */
@@ -45,6 +48,70 @@ char *atphdr;
 #define PAGE_ALIGN(x, a) (((x) + (a)-1) & ~((a)-1))
 #define PAGE_OFFSET(x, a) (x & (a - 1))
 #define PAGE_SIZE 4096
+
+void segv_handler(int sig,siginfo_t *si, void *unused){
+    //printf("Got SIGSEGV at address: 0x%lx\n",(long) si->si_addr);
+    if(si->si_addr == NULL){
+        exit(-1);
+    }
+    //printf("Implements the handler only\n");
+    long addr = si->si_addr;
+    /*
+    if(addr == 0x830440){
+        int tmp = 0;
+    }
+    */
+    int prot = 0;
+    for(int i=0;i<hdr->e_phnum;i++){
+        if(phdr[i].p_type != PT_LOAD) continue;
+        
+        if (addr < phdr[i].p_vaddr || addr >= phdr[i].p_vaddr+phdr[i].p_memsz) 
+            continue;
+        
+        u_int64_t size = phdr[i].p_filesz + PAGE_OFFSET(phdr[i].p_vaddr,PAGE_SIZE);
+        u_int64_t off = phdr[i].p_offset - PAGE_OFFSET(phdr[i].p_vaddr,PAGE_SIZE);
+        size = PAGE_ALIGN(size,PAGE_SIZE);
+        if(size==0) {
+            continue;
+        }
+        u_int64_t mapadr = PAGE_START(phdr[i].p_vaddr,PAGE_SIZE);
+        u_int64_t addrpage = PAGE_START(addr,PAGE_SIZE);
+        int flags = MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED;
+        if(mmap(addrpage,PAGE_SIZE,PROT_WRITE|PROT_READ,flags,-1,0)==-1){
+            //printf("MMAP WRONG in segvhandler\n");  
+            exit(-1);
+        }
+        
+
+         
+        if(phdr[i].p_flags&PF_W){
+             prot = prot|PROT_WRITE;
+        }
+        prot = prot|PROT_READ;
+        
+        if(phdr[i].p_flags & PF_X == 1){
+            prot = prot|PROT_EXEC;
+        }
+        
+        int64_t offset = addrpage - mapadr;
+
+        if(offset<phdr[i].p_filesz){
+            long cpy;
+            if(offset + PAGE_SIZE> phdr[i].p_filesz){
+                cpy = phdr[i].p_filesz - offset;
+            }else{
+                cpy = PAGE_SIZE;
+            }
+            pread(fd,addrpage,cpy,offset+off);
+        }
+
+        //printf("size %lx off %lx on MAP %lx with %d permision\n",size,off,mapadr,prot);
+        mprotect(addrpage,PAGE_SIZE,prot);
+        return 0;
+    }
+
+    return -1;
+}
 
 void new_aux_ent(unsigned long long ** ptr, unsigned long long val, unsigned long long id){
     *(--(*ptr))=val;
@@ -156,9 +223,17 @@ int main(int argc, char** argv, char** envp)
     hdr = buf;
     shdr = buf+hdr->e_shoff;
     phdr = buf+hdr->e_phoff;
-    
+   
+   
+    struct sigaction sa;
+    sa.sa_flags =  SA_ONSTACK | SA_SIGINFO;
+    sa.sa_sigaction = segv_handler;
+    sigemptyset(&sa.sa_mask); 
+    if(sigaction(SIGSEGV,&sa,NULL)==-1){
+        printf("SIGHANDLE setup goes wrong\n");
+    }
      
-    int fd = open(argv[1],O_RDONLY);
+    fd = open(argv[1],O_RDONLY);
     if(fd==0){
         printf("Can't open elf file");
         exit(-1);
@@ -196,22 +271,10 @@ int main(int argc, char** argv, char** envp)
             continue;
         }
         u_int64_t mapadr = PAGE_START(phdr[i].p_vaddr,PAGE_SIZE);
-        char* checker;
-        checker = mmap(mapadr,size,prot|PROT_EXEC,MAP_PRIVATE|MAP_FIXED,fd,off);
-        if (checker ==-1){
-            printf("MAPPING has error\n");
-        }
-        if (atphdr == 0){
-            atphdr = checker + 64;
-        }
-        printf("size %lx off %lx on MAP %lx with %d permision\n",size,off,checker,prot);
+        printf("size %lx off %lx on MAP %lx with %d permision\n",size,off,mapadr,prot);
         int diff = phdr[i].p_memsz-phdr[i].p_filesz;
         if(diff>0){
             diff= PAGE_ALIGN(diff,PAGE_SIZE);
-            checker = mmap(mapadr+size,diff,prot,MAP_PRIVATE|MAP_ANONYMOUS|MAP_FIXED,-1,0);
-            if (checker ==-1){
-                printf("MAPPING has error\n");
-            }
             printf("Additional size %lx off %lx on MAP %lx with %d permision\n",diff,0,mapadr+size,prot);
         }
         //memcpy(mapadr,off+buf,size);

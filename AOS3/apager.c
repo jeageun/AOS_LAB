@@ -91,7 +91,7 @@ void* build_stack(int argc, char** argv, char** envp){
         case AT_PHDR:
             *(char**)addr = *envp;
             addr += 8;
-            *(u_int64_t**)addr = atphdr;
+            *(u_int64_t**)addr = 0;
             addr += 8;
         break;
         case AT_PHNUM:
@@ -118,7 +118,7 @@ void* build_stack(int argc, char** argv, char** envp){
             *(char**)addr = *envp;
             addr += 8;
             *(char**)addr = mmap(0,32,PROT_READ|PROT_WRITE,MAP_PRIVATE|MAP_ANONYMOUS,-1,0);// exe file dir
-            **(long**)addr = 0x4861210;
+            **(long**)addr = rand();
             addr += 8;
         break;
         case AT_PLATFORM:
@@ -191,13 +191,14 @@ int main(int argc, char** argv, char** envp)
         }
         u_int64_t size = phdr[i].p_filesz + PAGE_OFFSET(phdr[i].p_vaddr,PAGE_SIZE);
         u_int64_t off = phdr[i].p_offset - PAGE_OFFSET(phdr[i].p_vaddr,PAGE_SIZE);
+        u_int64_t ori=size;
         size = PAGE_ALIGN(size,PAGE_SIZE);
         if(size==0) {
             continue;
         }
         u_int64_t mapadr = PAGE_START(phdr[i].p_vaddr,PAGE_SIZE);
         char* checker;
-        checker = mmap(mapadr,size,prot|PROT_EXEC,MAP_PRIVATE|MAP_FIXED,fd,off);
+        checker = mmap(mapadr,size,prot|PROT_EXEC|PROT_WRITE,MAP_PRIVATE|MAP_FIXED,fd,off);
         if (checker ==-1){
             printf("MAPPING has error\n");
         }
@@ -205,13 +206,16 @@ int main(int argc, char** argv, char** envp)
             atphdr = checker + 64;
         }
         printf("size %lx off %lx on MAP %lx with %d permision\n",size,off,checker,prot);
+        memset(mapadr+ori,0,size-ori);
+        mprotect(mapadr,size,prot);
         int diff = phdr[i].p_memsz-phdr[i].p_filesz;
         if(diff>0){
-            diff= PAGE_ALIGN(diff,PAGE_SIZE);
-            checker = mmap(mapadr+size,diff,prot,MAP_PRIVATE|MAP_ANONYMOUS|MAP_FIXED,-1,0);
+            void *bss = PAGE_ALIGN(phdr[i].p_vaddr+phdr[i].p_filesz,PAGE_SIZE);
+            checker = mmap(bss,diff,prot,MAP_PRIVATE|MAP_ANONYMOUS|MAP_FIXED,-1,0);
             if (checker ==-1){
                 printf("MAPPING has error\n");
             }
+            memset(bss,0,diff);
             printf("Additional size %lx off %lx on MAP %lx with %d permision\n",diff,0,mapadr+size,prot);
         }
         //memcpy(mapadr,off+buf,size);
