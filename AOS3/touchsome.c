@@ -33,16 +33,19 @@ int main(){
     dtime = dclock();
     int arr[SIZE];
     int arrb[SIZE];
+    
     for (int i=0;i<SIZE;i++){
         arr[i] = i;
-    }
+    }/*
     for (int j=0;j<SIZE;j++){
         arrb[j] = arr[j]*10;
     }
-    for(int j=0;j<SIZE*SIZE;j++){
+    */
+    /*
+    for(int j=0;j<;j++){
         arrc[j] = arrb[j%SIZE];
     }
-
+    */
     dtime = dclock()-dtime;
     printf("%f time\n",dtime);
     

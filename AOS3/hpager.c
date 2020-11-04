@@ -16,6 +16,7 @@ char *mem;
 char *filePath;
 char *atphdr;
 int fd;
+long totalsize;
 
 #define AT_NULL   0 /* end of vector */
 #define AT_IGNORE 1 /* entry should be ignored */
@@ -48,18 +49,19 @@ int fd;
 #define PAGE_ALIGN(x, a) (((x) + (a)-1) & ~((a)-1))
 #define PAGE_OFFSET(x, a) (x & (a - 1))
 #define PAGE_SIZE 4096
-
-
+#ifndef PREFETCH
+#define PREFETCH 3
+#endif
 int heuristic(u_int64_t addr){
-    if(addr < 0xa100000){
-        return PAGE_SIZE*2;
+    if(addr >= 0xa100000){
+        return PAGE_SIZE*PREFETCH;
     }
     else
         return PAGE_SIZE;
 }
 
 void segv_handler(int sig,siginfo_t *si, void *unused){
-    //printf("Got SIGSEGV at address: 0x%lx\n",(long) si->si_addr);
+    printf("total size: 0x%lx\n",(long) totalsize);
     if(si->si_addr == NULL){
         exit(-1);
     }
@@ -112,6 +114,7 @@ void segv_handler(int sig,siginfo_t *si, void *unused){
             }else{
                 cpy = csize;
             }
+            totalsize += cpy;
             pread(fd,addrpage,cpy,offset+off);
         }
 
@@ -222,6 +225,7 @@ void* build_stack(int argc, char** argv, char** envp){
 
 int main(int argc, char** argv, char** envp)
 {
+    totalsize = 0;
     char* buf = mmap(0,SIZE,PROT_READ|PROT_WRITE|PROT_EXEC,MAP_PRIVATE|MAP_ANONYMOUS,-1,0);
     mem = mmap(0,SIZE,PROT_READ|PROT_WRITE|PROT_EXEC,MAP_PRIVATE|MAP_ANONYMOUS,-1,0);
     FILE* elf = fopen(argv[1], "rb");

@@ -13,6 +13,7 @@ Elf64_Phdr *phdr;
 char *mem;
 char *filePath;
 char *atphdr;
+long totalsize;
 
 #define AT_NULL   0 /* end of vector */
 #define AT_IGNORE 1 /* entry should be ignored */
@@ -145,6 +146,7 @@ void* build_stack(int argc, char** argv, char** envp){
 
 int main(int argc, char** argv, char** envp)
 {
+    totalsize = 0;
     char* buf = mmap(0,SIZE,PROT_READ|PROT_WRITE|PROT_EXEC,MAP_PRIVATE|MAP_ANONYMOUS,-1,0);
     mem = mmap(0,SIZE,PROT_READ|PROT_WRITE|PROT_EXEC,MAP_PRIVATE|MAP_ANONYMOUS,-1,0);
     FILE* elf = fopen(argv[1], "rb");

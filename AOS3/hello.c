@@ -1,6 +1,5 @@
 #include <stdio.h>
-//char buf[66553];
-int main(void){
+int main(int argc,char **argv,char**envp){
     printf("Hello world!\n");
     return;
 }
